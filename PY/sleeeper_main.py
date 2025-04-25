@@ -335,7 +335,6 @@ async def timeout(interaction: discord.Interaction, user: discord.Member, durati
             ephemeral=True
         )
 
-    # Notify the channel with an embed
     channel_embed = discord.Embed(
         title="✅ User Timed Out",
         description=f"{user.mention} has been timed out.",
@@ -348,5 +347,42 @@ async def timeout(interaction: discord.Interaction, user: discord.Member, durati
     await interaction.response.send_message(embed=channel_embed)
 
     logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
+
+afk_users = {}
+
+@bot.tree.command(name="afk", description="Set your AFK status with an optional reason.")
+@app_commands.describe(reason="The reason why you're AFK (optional)")
+async def afk(interaction: discord.Interaction, reason: str = "No reason provided"):
+    afk_users[interaction.user.id] = reason
+    await interaction.response.send_message(
+        f"✅ {interaction.user.mention}, you are now AFK.\n**Reason:** {reason}",
+        ephemeral=True
+    )
+    logging.info(f"{interaction.user} is now AFK. Reason: {reason}")
+
+@bot.event
+async def on_message(message: discord.Message):
+    # Ignore messages from the bot itself
+    if message.author.bot:
+        return
+
+    for user_id in afk_users.keys():
+        if message.mentions and user_id in [mention.id for mention in message.mentions]:
+            reason = afk_users[user_id]
+            afk_user = await bot.fetch_user(user_id)
+            await message.reply(
+                f"🚨 {afk_user.name} is currently AFK.\n**Reason:** {reason}",
+                mention_author=False
+            )
+
+    if message.author.id in afk_users:
+        del afk_users[message.author.id]
+        await message.channel.send(
+            f"✅ Welcome back, {message.author.mention}! I have removed your AFK status.",
+            delete_after=10
+        )
+        logging.info(f"{message.author} is no longer AFK.")
+
+    await bot.process_commands(message)
 
 bot.run(DISCORD_BOT_TOKEN)
