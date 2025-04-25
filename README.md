@@ -5,3 +5,5 @@ I forbid the use of my Code in other Bots!
 It will lead to your bots termination!
 
 I allow to modify my Code, but not to Copy it entirely!
+
+Support Server: https://discord.gg/WwApdk4z4H
