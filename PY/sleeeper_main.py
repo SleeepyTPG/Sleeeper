@@ -333,7 +333,7 @@ async def timeout(interaction: discord.Interaction, user: discord.Member, durati
         await interaction.response.send_message(
             f"⚠️ Could not send a DM to {user.mention}. They might have DMs disabled.",
             ephemeral=True
-        ) #test
+        )
 
     await interaction.response.send_message(
         f"✅ {user.mention} has been timed out for **{duration} minutes**.\n**Reason:** {reason}"
