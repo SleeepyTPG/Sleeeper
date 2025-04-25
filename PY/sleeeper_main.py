@@ -39,8 +39,8 @@ ALLOWED_GUILD_ID = int(DISCORD_GUILD_ID)
 if not DISCORD_BOT_TOKEN or not DISCORD_APPLICATION_ID or not DISCORD_GUILD_ID:
     raise ValueError("❌ Missing required environment variables. Please check your .env file.")
 
-VERSION = "0.4.0 Beta Build"
-NEXT_VERSION = "0.4.0 Beta Build"
+VERSION = "0.4.1 Beta Build"
+NEXT_VERSION = "0.4.2 Beta Build"
 
 intents = discord.Intents.default()
 intents.message_content = True
