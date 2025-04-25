@@ -19,6 +19,9 @@ class MyBot(commands.Bot):
                 await self.load_extension(f"cogs.{filename[:-3]}")
                 logging.info(f"✅ Loaded cog: {filename[:-3]}")
 
+        await self.tree.sync()
+        logging.info("✅ Application commands synced with Discord.")
+
 bot = MyBot()
 
 @bot.event
