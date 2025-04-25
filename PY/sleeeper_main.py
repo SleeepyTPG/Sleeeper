@@ -364,16 +364,15 @@ async def afk(interaction: discord.Interaction, reason: str = "No reason provide
     afk_embed.set_footer(text="You will be notified when someone mentions you.")
 
     await interaction.response.send_message(embed=afk_embed, ephemeral=True)
-    logging.info(f"{interaction.user} is now AFK. Reason: {reason}")
+    logging.info(f"{interaction.user} is now AFK globally. Reason: {reason}")
 
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
 
-    for user_id in afk_users.keys():
+    for user_id, reason in afk_users.items():
         if message.mentions and user_id in [mention.id for mention in message.mentions]:
-            reason = afk_users[user_id]
             afk_user = await bot.fetch_user(user_id)
 
             afk_notify_embed = discord.Embed(
@@ -390,14 +389,14 @@ async def on_message(message: discord.Message):
         del afk_users[message.author.id]
 
         afk_removed_embed = discord.Embed(
-            title="✅ Welcome Back!",
+            title="Welcome Back!",
             description=f"{message.author.mention}, your AFK status has been removed.",
             color=discord.Color.green()
         )
         afk_removed_embed.set_footer(text="Glad to have you back!")
 
         await message.channel.send(embed=afk_removed_embed, delete_after=10)
-        logging.info(f"{message.author} is no longer AFK.")
+        logging.info(f"{message.author} is no longer AFK globally.")
 
     await bot.process_commands(message)
 
