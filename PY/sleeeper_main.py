@@ -354,15 +354,20 @@ afk_users = {}
 @app_commands.describe(reason="The reason why you're AFK (optional)")
 async def afk(interaction: discord.Interaction, reason: str = "No reason provided"):
     afk_users[interaction.user.id] = reason
-    await interaction.response.send_message(
-        f"✅ {interaction.user.mention}, you are now AFK.\n**Reason:** {reason}",
-        ephemeral=True
+
+    afk_embed = discord.Embed(
+        title="✅ AFK Status Set",
+        description=f"{interaction.user.mention}, you are now AFK.",
+        color=discord.Color.blue()
     )
+    afk_embed.add_field(name="Reason", value=reason, inline=False)
+    afk_embed.set_footer(text="You will be notified when someone mentions you.")
+
+    await interaction.response.send_message(embed=afk_embed, ephemeral=True)
     logging.info(f"{interaction.user} is now AFK. Reason: {reason}")
 
 @bot.event
 async def on_message(message: discord.Message):
-    # Ignore messages from the bot itself
     if message.author.bot:
         return
 
@@ -370,17 +375,28 @@ async def on_message(message: discord.Message):
         if message.mentions and user_id in [mention.id for mention in message.mentions]:
             reason = afk_users[user_id]
             afk_user = await bot.fetch_user(user_id)
-            await message.reply(
-                f"🚨 {afk_user.name} is currently AFK.\n**Reason:** {reason}",
-                mention_author=False
+
+            afk_notify_embed = discord.Embed(
+                title="🚨 User is AFK",
+                description=f"{afk_user.mention} is currently AFK.",
+                color=discord.Color.orange()
             )
+            afk_notify_embed.add_field(name="Reason", value=reason, inline=False)
+            afk_notify_embed.set_footer(text="They will respond when they return.")
+
+            await message.reply(embed=afk_notify_embed, mention_author=False)
 
     if message.author.id in afk_users:
         del afk_users[message.author.id]
-        await message.channel.send(
-            f"✅ Welcome back, {message.author.mention}! I have removed your AFK status.",
-            delete_after=10
+
+        afk_removed_embed = discord.Embed(
+            title="✅ Welcome Back!",
+            description=f"{message.author.mention}, your AFK status has been removed.",
+            color=discord.Color.green()
         )
+        afk_removed_embed.set_footer(text="Glad to have you back!")
+
+        await message.channel.send(embed=afk_removed_embed, delete_after=10)
         logging.info(f"{message.author} is no longer AFK.")
 
     await bot.process_commands(message)
