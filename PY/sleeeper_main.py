@@ -13,7 +13,6 @@ class MyBot(commands.Bot):
         super().__init__(command_prefix="´", intents=discord.Intents.all())
 
     async def setup_hook(self):
-        # Load all cogs from the cogs folder
         for filename in os.listdir("./cogs"):
             if filename.endswith(".py"):
                 await self.load_extension(f"cogs.{filename[:-3]}")
