@@ -36,7 +36,7 @@ class General(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
-    @commands.has_permissions(manage_channels=True)
+    @app_commands.checks.has_permissions(manage_channels=True)
     async def lock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
@@ -50,7 +50,7 @@ class General(commands.Cog):
         )
 
     @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
-    @commands.has_permissions(manage_channels=True)
+    @app_commands.checks.has_permissions(manage_channels=True)
     async def unlock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
