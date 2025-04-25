@@ -168,10 +168,10 @@ async def unlock_channel(interaction: discord.Interaction):
     logging.info(f"🔓 Channel {channel.name} was unlocked by {interaction.user}.")
 
 @bot.tree.command(name="warn", description="Warns a user and sends them a DM with the reason.")
-@commands.has_permissions(kick_members=True)
+@checks.has_permissions(moderate_members=True)
 @app_commands.describe(user="The user to warn", reason="The reason for the warning")
 async def warn(interaction: discord.Interaction, user: discord.Member, reason: str):
-    warning_id = str(uuid.uuid4())[:8]  
+    warning_id = str(uuid.uuid4())[:8]
 
     dm_embed = discord.Embed(
         title="⚠️ You Have Been Warned",
