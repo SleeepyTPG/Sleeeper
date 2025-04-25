@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import uuid
 from datetime import timedelta
 from discord.app_commands import checks
+import json
 
 load_dotenv()
 
@@ -39,8 +40,8 @@ ALLOWED_GUILD_ID = int(DISCORD_GUILD_ID)
 if not DISCORD_BOT_TOKEN or not DISCORD_APPLICATION_ID or not DISCORD_GUILD_ID:
     raise ValueError("❌ Missing required environment variables. Please check your .env file.")
 
-VERSION = "0.4.1 Beta Build"
-NEXT_VERSION = "0.4.2 Beta Build"
+VERSION = "0.4.2 Beta Build"
+NEXT_VERSION = "0.4.3 Beta Build"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -79,6 +80,7 @@ verify_roles = {}
 
 @bot.event
 async def on_ready():
+    load_afk_users()
     total_members = sum(guild.member_count or 0 for guild in bot.guilds)
     await bot.change_presence(activity=discord.Activity(
         type=discord.ActivityType.watching,
@@ -118,6 +120,8 @@ async def version_info(interaction: discord.Interaction):
     embed.add_field(name="Bot Name", value=bot.user.name, inline=False)
     embed.add_field(name="Version", value=VERSION, inline=False)
     embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
+    embed.add_field(name="Release Date", value="TBA", inline=False)
+    embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
     embed.add_field(name="Extra Info", value="**Note:** This bot is in Beta phase.", inline=False)
     embed.set_footer(text="For more information, visit the support server.")
     await interaction.response.send_message(embed=embed)
@@ -348,12 +352,25 @@ async def timeout(interaction: discord.Interaction, user: discord.Member, durati
 
     logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
-afk_users = {}
+AFK_FILE = "afk_users.json"
+
+def save_afk_users():
+    with open(AFK_FILE, "w") as file:
+        json.dump(afk_users, file)
+
+def load_afk_users():
+    global afk_users
+    if os.path.exists(AFK_FILE):
+        with open(AFK_FILE, "r") as file:
+            afk_users = json.load(file)
+    else:
+        afk_users = {}
 
 @bot.tree.command(name="afk", description="Set your AFK status with an optional reason.")
 @app_commands.describe(reason="The reason why you're AFK (optional)")
 async def afk(interaction: discord.Interaction, reason: str = "No reason provided"):
     afk_users[interaction.user.id] = reason
+    save_afk_users()
 
     afk_embed = discord.Embed(
         title="✅ AFK Status Set",
@@ -387,6 +404,7 @@ async def on_message(message: discord.Message):
 
     if message.author.id in afk_users:
         del afk_users[message.author.id]
+        save_afk_users()
 
         afk_removed_embed = discord.Embed(
             title="Welcome Back!",
