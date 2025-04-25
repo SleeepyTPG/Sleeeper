@@ -335,9 +335,18 @@ async def timeout(interaction: discord.Interaction, user: discord.Member, durati
             ephemeral=True
         )
 
-    await interaction.response.send_message(
-        f"✅ {user.mention} has been timed out for **{duration} minutes**.\n**Reason:** {reason}"
+    # Notify the channel with an embed
+    channel_embed = discord.Embed(
+        title="✅ User Timed Out",
+        description=f"{user.mention} has been timed out.",
+        color=discord.Color.orange()
     )
+    channel_embed.add_field(name="Duration", value=f"{duration} minutes", inline=False)
+    channel_embed.add_field(name="Reason", value=reason, inline=False)
+    channel_embed.set_footer(text=f"Timed out by {interaction.user}", icon_url=interaction.user.avatar.url)
+
+    await interaction.response.send_message(embed=channel_embed)
+
     logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
 bot.run(DISCORD_BOT_TOKEN)
