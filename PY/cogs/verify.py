@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ui import View, Button
 
-verify_roles = {}  # Dictionary to store verification roles for each guild
+verify_roles = {}
 
 class VerifyView(View):
     def __init__(self):

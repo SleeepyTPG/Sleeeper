@@ -18,7 +18,6 @@ class Moderation(commands.Cog):
     async def timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str):
         timeout_duration = timedelta(minutes=duration)
 
-        # Attempt to timeout the user
         try:
             await user.timeout(timeout_duration, reason=reason)
         except discord.Forbidden:
@@ -34,7 +33,6 @@ class Moderation(commands.Cog):
             )
             return
 
-        # Send a DM to the user
         try:
             dm_embed = discord.Embed(
                 title="⏳ You Have Been Timed Out",
@@ -51,7 +49,6 @@ class Moderation(commands.Cog):
                 ephemeral=True
             )
 
-        # Notify the channel
         channel_embed = discord.Embed(
             title="✅ User Timed Out",
             description=f"{user.mention} has been timed out.",
@@ -63,7 +60,6 @@ class Moderation(commands.Cog):
 
         await interaction.response.send_message(embed=channel_embed)
 
-        # Log the timeout action
         logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
 async def setup(bot):

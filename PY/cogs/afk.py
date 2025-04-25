@@ -25,7 +25,6 @@ class AFK(commands.Cog):
         if message.author.bot:
             return
 
-        # Notify users who mention an AFK user
         for user_id, reason in self.afk_users.items():
             if message.mentions and user_id in [mention.id for mention in message.mentions]:
                 afk_user = await self.bot.fetch_user(user_id)
@@ -40,7 +39,6 @@ class AFK(commands.Cog):
 
                 await message.reply(embed=afk_notify_embed, mention_author=False)
 
-        # Remove AFK status when the user sends a message
         if message.author.id in self.afk_users:
             del self.afk_users[message.author.id]
             save_afk_users(self.afk_users)
