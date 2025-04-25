@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 class MyBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=discord.Intents.all())
+        super().__init__(command_prefix="´", intents=discord.Intents.all())
 
     async def setup_hook(self):
         # Load all cogs from the cogs folder
