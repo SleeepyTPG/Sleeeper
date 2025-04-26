@@ -96,8 +96,17 @@ class Random(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="roast", description="Generate a random roast message.")
-    async def roast(self, interaction: discord.Interaction):
+class Random(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="roast", description="Roast another user!")
+    @app_commands.describe(user="The user you want to roast")
+    async def roast(self, interaction: discord.Interaction, user: discord.Member):
+        if user == interaction.user:
+            await interaction.response.send_message("🔥 You can't roast yourself! But nice try. 😉", ephemeral=True)
+            return
+
         roasts = [
             "You're like a cloud. When you disappear, it's a beautiful day.",
             "You're proof that even the worst mistakes can be fixed.",
@@ -133,79 +142,16 @@ class Random(commands.Cog):
             "You're like a bad app—nobody downloads you, and everyone deletes you.",
             "You're like a broken light bulb—completely useless.",
             "You're like a bad review—nobody wants to see you, but everyone remembers you.",
-            "You're like a bad password—easily forgotten and completely useless.",
-            "You're like a bad habit—hard to break and annoying to deal with.",
-            "You're like a bad decision—everyone regrets you.",
-            "You're like a bad haircut—everyone notices, but nobody says anything.",
-            "You're like a bad idea—easily ignored and quickly forgotten.",
-            "You're like a bad relationship—nobody wants to deal with you.",
-            "You're like a bad song—nobody wants to hear you, and everyone skips you.",
-            "You're like a bad trend—quickly forgotten and easily ignored.",
-            "You're like a bad vacation—nobody enjoys you, and everyone regrets you.",
-            "You're like a bad weather forecast—nobody believes you, and everyone ignores you.",
-            "You're like a bad workout—nobody enjoys you, and everyone regrets you.",
-            "You're like a bad yearbook photo—nobody wants to remember you.",
-            "You're like a bad YouTube comment—easily ignored and quickly forgotten.",
-            "You're like a broken clock—wrong all the time.",
-            "You're like a broken pencil—completely pointless.",
-            "You're like a broken record—repeating the same mistakes over and over.",
-            "You're like a broken remote—completely useless.",
-            "You're like a broken umbrella—completely useless.",
-            "You're like a broken vending machine—completely useless.",
-            "You're like a broken zipper—completely useless.",
-            "You're like a cheap knock-off—disappointing and easily forgotten.",
-            "You're like a cheap suit—uncomfortable and easily ignored.",
-            "You're like a cheap watch—unreliable and easily forgotten.",
-            "You're like a cheap wine—forgettable and disappointing.",
-            "You're like a cloudy day—easily ignored and quickly forgotten.",
-            "You're like a cold cup of coffee—unpleasant and disappointing.",
-            "You're like a cold pizza—forgettable and disappointing.",
-            "You're like a cold shower—unpleasant and easily forgotten.",
-            "You're like a cold winter day—unpleasant and easily ignored.",
-            "You're like a dead battery—completely useless.",
-            "You're like a dead end—completely pointless.",
-            "You're like a dead fish—forgettable and unpleasant.",
-            "You're like a dead plant—completely useless.",
-            "You're like a dead-end job—forgettable and unpleasant.",
-            "You're like a dirty sock—unpleasant and easily ignored.",
-            "You're like a forgotten password—annoying and easily ignored.",
-            "You're like a forgotten phone charger—completely useless.",
-            "You're like a forgotten umbrella—completely useless.",
-            "You're like a forgotten wallet—completely useless.",
-            "You're like a forgotten watch—completely useless.",
-            "You're like a forgotten Wi-Fi password—completely useless.",
-            "You're like a forgotten workout—completely useless.",
-            "You're like a forgotten yearbook photo—completely useless.",
-            "You're like a forgotten YouTube video—completely useless.",
-            "You're like a frozen computer—completely useless.",
-            "You're like a frozen pizza—forgettable and disappointing.",
-            "You're like a frozen screen—completely useless.",
-            "You're like a frozen yogurt—forgettable and disappointing.",
-            "You're like a half-baked idea—forgettable and disappointing.",
-            "You're like a half-empty bottle—forgettable and disappointing.",
-            "You're like a half-empty glass—forgettable and disappointing.",
-            "You're like a half-eaten sandwich—forgettable and disappointing.",
-            "You're like a half-hearted apology—forgettable and disappointing.",
-            "You're like a half-hearted compliment—forgettable and disappointing.",
-            "You're like a half-hearted effort—forgettable and disappointing.",
-            "You're like a half-hearted joke—forgettable and disappointing.",
-            "You're like a half-hearted promise—forgettable and disappointing.",
-            "You're like a half-hearted smile—forgettable and disappointing.",
-            "You're like a half-hearted solution—forgettable and disappointing.",
-            "You're like a half-hearted suggestion—forgettable and disappointing.",
-            "You're like a half-hearted thank-you—forgettable and disappointing.",
-            "You're like a half-hearted try—forgettable and disappointing.",
-            "You're like a half-hearted wish—forgettable and disappointing."
         ]
 
         roast_message = random.choice(roasts)
 
         embed = discord.Embed(
             title="🔥 Roast Generator",
-            description=f"{interaction.user.mention}, here's your roast:\n\n**{roast_message}**",
+            description=f"{user.mention}, here's your roast:\n\n**{roast_message}**",
             color=discord.Color.orange()
         )
-        embed.set_footer(text="Don't take it personally 😉")
+        embed.set_footer(text=f"Roasted by {interaction.user.display_name}")
 
         await interaction.response.send_message(embed=embed)
 
