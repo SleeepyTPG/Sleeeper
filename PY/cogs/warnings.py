@@ -1,19 +1,40 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import random
+import json
+import os
 
 log_channels = {}
+
+warn_ids = {}
+
+WARN_ID_FILE = "warn_ids.json"
+
+if os.path.exists(WARN_ID_FILE):
+    with open(WARN_ID_FILE, "r") as file:
+        warn_ids = json.load(file)
 
 class Warnings(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def get_next_warn_id(self, guild_id: int) -> str:
+        """Get the next sequential Warn ID for the guild."""
+        if guild_id not in warn_ids:
+            warn_ids[guild_id] = 1
+        else:
+            warn_ids[guild_id] += 1
+
+        with open(WARN_ID_FILE, "w") as file:
+            json.dump(warn_ids, file)
+
+        return f"{warn_ids[guild_id]:04d}"
+
     @app_commands.command(name="warn", description="Warns a user and sends them a DM with the reason.")
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
-        warning_id = random.randint(1000, 9999)
+        warning_id = self.get_next_warn_id(interaction.guild.id)
 
         dm_embed = discord.Embed(
             title="⚠️ You Have Been Warned",
