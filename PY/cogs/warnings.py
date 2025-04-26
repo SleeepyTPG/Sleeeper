@@ -3,6 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import random
 
+log_channels = {}
+
 class Warnings(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -41,6 +43,33 @@ class Warnings(commands.Cog):
         channel_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=interaction.user.avatar.url)
 
         await interaction.response.send_message(embed=channel_embed)
+
+        guild_id = interaction.guild.id
+        if guild_id in log_channels:
+            log_channel_id = log_channels[guild_id]
+            log_channel = interaction.guild.get_channel(log_channel_id)
+            if log_channel:
+                log_embed = discord.Embed(
+                    title="⚠️ Warning Logged",
+                    description=f"A warning has been issued in **{interaction.guild.name}**.",
+                    color=discord.Color.yellow()
+                )
+                log_embed.add_field(name="Warned User", value=user.mention, inline=False)
+                log_embed.add_field(name="Reason", value=reason, inline=False)
+                log_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
+                log_embed.add_field(name="Moderator", value=interaction.user.mention, inline=False)
+                log_embed.set_footer(text="Warning Log")
+                await log_channel.send(embed=log_embed)
+
+    @app_commands.command(name="set_warn_log", description="Set the channel where warnings will be logged.")
+    @app_commands.describe(channel="The channel to log warnings")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        log_channels[interaction.guild.id] = channel.id
+        await interaction.response.send_message(
+            f"✅ Warning log channel has been set to {channel.mention}.",
+            ephemeral=True
+        )
 
 async def setup(bot):
     await bot.add_cog(Warnings(bot))
