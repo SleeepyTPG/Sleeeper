@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import uuid
+import random
 
 class Warnings(commands.Cog):
     def __init__(self, bot):
@@ -11,7 +11,7 @@ class Warnings(commands.Cog):
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
-        warning_id = str(uuid.uuid4())[:8]
+        warning_id = random.randint(1000, 9999)
 
         dm_embed = discord.Embed(
             title="⚠️ You Have Been Warned",
@@ -19,7 +19,7 @@ class Warnings(commands.Cog):
             color=discord.Color.red()
         )
         dm_embed.add_field(name="Reason", value=reason, inline=False)
-        dm_embed.add_field(name="Warning ID", value=warning_id, inline=False)
+        dm_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
         dm_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=interaction.user.avatar.url)
 
         try:
@@ -37,7 +37,7 @@ class Warnings(commands.Cog):
             color=discord.Color.orange()
         )
         channel_embed.add_field(name="Reason", value=reason, inline=False)
-        channel_embed.add_field(name="Warning ID", value=warning_id, inline=False)
+        channel_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
         channel_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=interaction.user.avatar.url)
 
         await interaction.response.send_message(embed=channel_embed)
