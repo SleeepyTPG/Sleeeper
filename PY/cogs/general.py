@@ -4,6 +4,12 @@ from discord import app_commands
 
 BOT_VERSION = "0.5.0 Beta Build"
 NEXT_VERSION = "0.5.1 Beta Build"
+NEXT_VERSION_FEATURES = [
+    "Add a new Feature to the AFK command",
+    "Add a new Feature to the Help command",
+]
+RELEASE_DATE = "TBA"
+NEXT_VERSION_RELEASE_DATE = "TBA"
 
 class General(commands.Cog):
     def __init__(self, bot):
@@ -18,8 +24,8 @@ class General(commands.Cog):
     async def info(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Bot Info", color=discord.Color.blue())
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
+        embed.add_field(name="Lead Dev", value="<@1104736921474834493>", inline=False)
         embed.add_field(name="Helper", value="<@1296122732173590651>", inline=False)
-        embed.add_field(name="Coder", value="<@1104736921474834493>", inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
         await interaction.response.send_message(embed=embed)
 
@@ -29,7 +35,9 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Release Date", value="TBA", inline=False)
+        embed.add_field(name="Next Version Features", value=NEXT_VERSION_FEATURES, inline=False)
+        embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
+        embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
         embed.add_field(name="Extra Info", value="**Note:** This bot is in Beta phase.", inline=False)
         embed.set_footer(text="For more information, visit the support server.")
@@ -67,6 +75,7 @@ class General(commands.Cog):
     async def help_command(self, interaction: discord.Interaction):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/WwApdk4z4H"))
+        view.add_item(discord.ui.Button)(label="GitHub", url="https://github.com/SleeepyTPG/Sleeeper")
         await interaction.response.send_message(
             "If you need any help with my bot, join my Discord server below:", view=view
         )
