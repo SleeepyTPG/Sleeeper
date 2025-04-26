@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import json
 import os
 
@@ -52,20 +53,24 @@ class AFK(commands.Cog):
 
             await message.channel.send(embed=afk_removed_embed, delete_after=10)
 
-    @commands.command(name="afk", description="Set your AFK status with an optional reason.")
-    async def afk(self, ctx, *, reason: str = "No reason provided"):
-        self.afk_users[ctx.author.id] = reason
+        await self.bot.process_commands(message)
+
+    @app_commands.command(name="afk", description="Set your AFK status with an optional reason.")
+    @app_commands.describe(reason="The reason for going AFK")
+    async def afk(self, interaction: discord.Interaction, reason: str = "No reason provided"):
+        """Set the user's AFK status."""
+        self.afk_users[interaction.user.id] = reason
         save_afk_users(self.afk_users)
 
         afk_embed = discord.Embed(
             title="✅ AFK Status Set",
-            description=f"{ctx.author.mention}, you are now AFK.",
+            description=f"{interaction.user.mention}, you are now AFK.",
             color=discord.Color.blue()
         )
         afk_embed.add_field(name="Reason", value=reason, inline=False)
         afk_embed.set_footer(text="You will be notified when someone mentions you.")
 
-        await ctx.send(embed=afk_embed)
+        await interaction.response.send_message(embed=afk_embed)
 
 async def setup(bot):
     await bot.add_cog(AFK(bot))
