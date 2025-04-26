@@ -5,6 +5,48 @@ import random
 
 marriages = {}
 
+class ProposalView(discord.ui.View):
+    def __init__(self, proposer: discord.Member, proposee: discord.Member):
+        super().__init__(timeout=60)
+        self.proposer = proposer
+        self.proposee = proposee
+        self.result = None
+
+    @discord.ui.button(label="Accept 💍", style=discord.ButtonStyle.green)
+    async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.proposee:
+            await interaction.response.send_message("❌ This proposal is not for you!", ephemeral=True)
+            return
+
+        marriages[self.proposer.id] = self.proposee.id
+        marriages[self.proposee.id] = self.proposer.id
+
+        embed = discord.Embed(
+            title="💍 Marriage Accepted!",
+            description=f"{self.proposee.mention} has accepted {self.proposer.mention}'s proposal! 🎉",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Congratulations on your marriage!")
+        await interaction.response.edit_message(embed=embed, view=None)
+        self.result = "accepted"
+        self.stop()
+
+    @discord.ui.button(label="Decline 💔", style=discord.ButtonStyle.red)
+    async def decline(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.proposee:
+            await interaction.response.send_message("❌ This proposal is not for you!", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="💔 Proposal Declined",
+            description=f"{self.proposee.mention} has declined {self.proposer.mention}'s proposal. 😢",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Better luck next time!")
+        await interaction.response.edit_message(embed=embed, view=None)
+        self.result = "declined"
+        self.stop()
+
 class Random(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -24,17 +66,15 @@ class Random(commands.Cog):
             await interaction.response.send_message(f"💔 {user.mention} is already married to someone else!", ephemeral=True)
             return
 
-        marriages[interaction.user.id] = user.id
-        marriages[user.id] = interaction.user.id
-
         embed = discord.Embed(
             title="💍 Marriage Proposal",
-            description=f"{interaction.user.mention} has proposed to {user.mention}! 💕\n\nThey are now married! 🎉",
+            description=f"{interaction.user.mention} has proposed to {user.mention}! 💕\n\n{user.mention}, do you accept?",
             color=discord.Color.pink()
         )
-        embed.set_footer(text="Congratulations on your marriage!")
+        embed.set_footer(text="You have 60 seconds to respond.")
 
-        await interaction.response.send_message(embed=embed)
+        view = ProposalView(proposer=interaction.user, proposee=user)
+        await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="divorce", description="Divorce your current partner.")
     async def divorce(self, interaction: discord.Interaction):
