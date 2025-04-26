@@ -7,7 +7,7 @@ marriages = {}
 
 class ProposalView(discord.ui.View):
     def __init__(self, proposer: discord.Member, proposee: discord.Member):
-        super().__init__(timeout=60)
+        super().__init__(timeout=360)
         self.proposer = proposer
         self.proposee = proposee
         self.result = None
@@ -71,7 +71,7 @@ class Random(commands.Cog):
             description=f"{interaction.user.mention} has proposed to {user.mention}! 💕\n\n{user.mention}, do you accept?",
             color=discord.Color.pink()
         )
-        embed.set_footer(text="You have 60 seconds to respond.")
+        embed.set_footer(text="You have 6 Minutes to respond.")
 
         view = ProposalView(proposer=interaction.user, proposee=user)
         await interaction.response.send_message(embed=embed, view=view)
