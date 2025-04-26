@@ -4,12 +4,8 @@ from discord import app_commands
 
 BOT_VERSION = "0.5.0 Beta Build"
 NEXT_VERSION = "0.5.1 Beta Build"
-NEXT_VERSION_FEATURES = [
-    "Add a new Feature to the AFK command",
-    "Add a new Feature to the Help command",
-]
 RELEASE_DATE = "TBA"
-NEXT_VERSION_RELEASE_DATE = "TBA"
+NEXT_VERSION_RELEASE_DATE = "26.04"
 
 class General(commands.Cog):
     def __init__(self, bot):
@@ -35,7 +31,7 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Next Version Features", value=NEXT_VERSION_FEATURES, inline=True)
+        embed.add_field(name="Next Version Features", value="Add a new Feature, Refine the warn Command", inline=False)
         embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
         embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
