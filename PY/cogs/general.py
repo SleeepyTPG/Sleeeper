@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-BOT_VERSION = "0.5.1 Beta Build"
-NEXT_VERSION = "0.5.2 Beta Build"
+BOT_VERSION = "0.5.2 Beta Build"
+NEXT_VERSION = "0.5.3 Beta Build"
 RELEASE_DATE = "TBA"
-NEXT_VERSION_RELEASE_DATE = "27.04"
+NEXT_VERSION_RELEASE_DATE = "TBA"
 
 class General(commands.Cog):
     def __init__(self, bot):
@@ -31,7 +31,7 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Next Version Features", value="Make the /warn more customizeable", inline=False)
+        embed.add_field(name="Next Version Features", value="Make the /warn more customizable", inline=False)
         embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
         embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
@@ -71,10 +71,24 @@ class General(commands.Cog):
     async def help_command(self, interaction: discord.Interaction):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/WwApdk4z4H"))
-        view.add_item(discord.ui.Button)(label="GitHub", url="https://github.com/SleeepyTPG/Sleeeper")
+        view.add_item(discord.ui.Button(label="GitHub", url="https://github.com/SleeepyTPG/Sleeeper"))
         await interaction.response.send_message(
             "If you need any help with my bot, join my Discord server below:", view=view
         )
+
+    @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
+    async def servers(self, interaction: discord.Interaction):
+        guilds = self.bot.guilds
+        embed = discord.Embed(
+            title="📜 Servers List",
+            description=f"The bot is currently in **{len(guilds)}** servers:",
+            color=discord.Color.blue()
+        )
+
+        for guild in guilds:
+            embed.add_field(name=guild.name, value=f"ID: {guild.id}", inline=False)
+
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(General(bot))
