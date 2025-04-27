@@ -42,7 +42,6 @@ class LevelSystem(commands.Cog):
             return False, user_data["level"]
 
     def get_user_data(self, user_id: int, guild_id: int):
-        """Retrieve a user's level and XP data."""
         if str(guild_id) in self.levels and str(user_id) in self.levels[str(guild_id)]:
             return self.levels[str(guild_id)][str(user_id)]
         return {"xp": 0, "level": 1}
