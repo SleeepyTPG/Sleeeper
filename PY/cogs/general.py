@@ -86,7 +86,11 @@ class General(commands.Cog):
         )
 
         for guild in guilds:
-            embed.add_field(name=guild.name, value=f"ID: {guild.id}", inline=False)
+            embed.add_field(
+                name=guild.name,
+                value=f"ID: {guild.id}\nMembers: {guild.member_count}",
+                inline=False
+            )
 
         await interaction.response.send_message(embed=embed)
 
