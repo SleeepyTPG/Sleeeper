@@ -20,6 +20,7 @@ class General(commands.Cog):
     async def info(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Bot Info", color=discord.Color.blue())
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
+        embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Lead Dev", value="<@1104736921474834493>", inline=False)
         embed.add_field(name="Helper", value="<@1296122732173590651>", inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
@@ -31,7 +32,7 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Next Version Features", value="Make the /warn more customizable", inline=False)
+        embed.add_field(name="Next Version Features", value="Make the /warn more customizable /n More moderation features", inline=False)
         embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
         embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
