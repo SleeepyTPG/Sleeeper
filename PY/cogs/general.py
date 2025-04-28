@@ -4,7 +4,7 @@ from discord import app_commands
 
 BOT_VERSION = "0.5.4 Beta Build"
 NEXT_VERSION = "0.5.5 Beta Build"
-RELEASE_DATE = "TBA"
+RELEASE_DATE = "05.07.2025"
 NEXT_VERSION_RELEASE_DATE = "02.05.2025"
 
 class General(commands.Cog):
@@ -49,7 +49,7 @@ class General(commands.Cog):
         embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
         embed.add_field(name="GitHub", value="https://github.com/SleeepyTPG/Sleeeper", inline=False)
         embed.set_footer(text="If you have any questions, feel free to ask in the support server.")
-        
+
     @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
     async def servers(self, interaction: discord.Interaction):
         guilds = self.bot.guilds
