@@ -27,6 +27,59 @@ def save_level_channels(level_channels):
     with open(LEVEL_CHANNELS_FILE, "w") as file:
         json.dump(level_channels, file)
 
+class LeaderboardView(discord.ui.View):
+    def __init__(self, bot, leaderboard, interaction):
+        super().__init__()
+        self.bot = bot
+        self.leaderboard = leaderboard
+        self.interaction = interaction
+        self.current_page = 0
+        self.entries_per_page = 10
+        self.total_pages = (len(leaderboard) - 1) // self.entries_per_page + 1
+
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.clear_items()
+        if self.current_page > 0:
+            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="prev"))
+        if self.current_page < self.total_pages - 1:
+            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
+
+    async def send_page(self):
+        start_index = self.current_page * self.entries_per_page
+        end_index = start_index + self.entries_per_page
+        page_entries = self.leaderboard[start_index:end_index]
+
+        embed = discord.Embed(
+            title=f"🏆 Server Leaderboard (Page {self.current_page + 1}/{self.total_pages})",
+            color=discord.Color.gold()
+        )
+
+        for i, (user_id, data) in enumerate(page_entries, start=start_index + 1):
+            user = await self.bot.fetch_user(int(user_id))
+            embed.add_field(
+                name=f"{i}. {user.display_name}",
+                value=f"**Level:** {data['level']} | **XP:** {data['xp']}",
+                inline=False
+            )
+
+        await self.interaction.edit_original_response(embed=embed, view=self)
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_buttons()
+            await self.send_page()
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self.update_buttons()
+            await self.send_page()
+
 class LevelSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -55,7 +108,6 @@ class LevelSystem(commands.Cog):
             return False, user_data["level"]
 
     def get_user_data(self, user_id: int, guild_id: int):
-        """Retrieve a user's level and XP data for a specific server."""
         if str(guild_id) in self.levels and str(user_id) in self.levels[str(guild_id)]:
             return self.levels[str(guild_id)][str(user_id)]
         return {"xp": 0, "level": 1}
@@ -109,26 +161,18 @@ class LevelSystem(commands.Cog):
             reverse=True
         )
 
-        embed = discord.Embed(
-            title="🏆 Server Leaderboard",
-            color=discord.Color.gold()
-        )
+        if not leaderboard:
+            await interaction.response.send_message("No data available for this server.", ephemeral=True)
+            return
 
-        for i, (user_id, data) in enumerate(leaderboard[:10], start=1):
-            user = await self.bot.fetch_user(int(user_id))
-            embed.add_field(
-                name=f"{i}. {user.display_name}",
-                value=f"**Level:** {data['level']} | **XP:** {data['xp']}",
-                inline=False
-            )
-
-        await interaction.response.send_message(embed=embed)
+        view = LeaderboardView(self.bot, leaderboard, interaction)
+        await interaction.response.send_message("Loading leaderboard...", ephemeral=False)
+        await view.send_page()
 
     @app_commands.command(name="set_level_channel", description="Set the channel where level-up messages will be sent.")
     @app_commands.describe(channel="The channel to send level-up messages")
     @app_commands.checks.has_permissions(administrator=True)
     async def set_level_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
-        """Set the level-up notification channel for the server."""
         self.level_channels[str(interaction.guild.id)] = channel.id
         save_level_channels(self.level_channels)
         await interaction.response.send_message(f"✅ Level-up messages will now be sent in {channel.mention}.")
