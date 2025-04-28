@@ -62,5 +62,33 @@ class Moderation(commands.Cog):
 
         logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
+    @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
+    @app_commands.checks.has_permissions(manage_channels=True)
+    async def lock_channel(self, interaction: discord.Interaction):
+        channel = interaction.channel
+        guild = interaction.guild
+
+        overwrite = channel.overwrites_for(guild.default_role)
+        overwrite.send_messages = False
+        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+
+        await interaction.response.send_message(
+            f"🔒 The channel {channel.mention} has been locked. Members can no longer write here."
+        )
+
+    @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
+    @app_commands.checks.has_permissions(manage_channels=True)
+    async def unlock_channel(self, interaction: discord.Interaction):
+        channel = interaction.channel
+        guild = interaction.guild
+
+        overwrite = channel.overwrites_for(guild.default_role)
+        overwrite.send_messages = True
+        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+
+        await interaction.response.send_message(
+            f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
+        )
+
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

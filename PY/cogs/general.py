@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-BOT_VERSION = "0.5.2 Beta Build"
-NEXT_VERSION = "0.5.3 Beta Build"
+BOT_VERSION = "0.5.4 Beta Build"
+NEXT_VERSION = "0.5.5 Beta Build"
 RELEASE_DATE = "TBA"
-NEXT_VERSION_RELEASE_DATE = "TBA"
+NEXT_VERSION_RELEASE_DATE = "02.05.2025"
 
 class General(commands.Cog):
     def __init__(self, bot):
@@ -39,43 +39,17 @@ class General(commands.Cog):
         embed.set_footer(text="For more information, visit the support server.")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
-    @app_commands.checks.has_permissions(manage_channels=True)
-    async def lock_channel(self, interaction: discord.Interaction):
-        channel = interaction.channel
-        guild = interaction.guild
-
-        overwrite = channel.overwrites_for(guild.default_role)
-        overwrite.send_messages = False
-        await channel.set_permissions(guild.default_role, overwrite=overwrite)
-
-        await interaction.response.send_message(
-            f"🔒 The channel {channel.mention} has been locked. Members can no longer write here."
+    @app_commands.command(name="help", description="Get help with the bot")
+    async def help(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="Help",
+            description="Need help? Join our support server or check out the GitHub repository.",
+            color=discord.Color.blue()
         )
-
-    @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
-    @app_commands.checks.has_permissions(manage_channels=True)
-    async def unlock_channel(self, interaction: discord.Interaction):
-        channel = interaction.channel
-        guild = interaction.guild
-
-        overwrite = channel.overwrites_for(guild.default_role)
-        overwrite.send_messages = True
-        await channel.set_permissions(guild.default_role, overwrite=overwrite)
-
-        await interaction.response.send_message(
-            f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
-        )
-
-    @app_commands.command(name="help", description="Shows a list of available commands")
-    async def help_command(self, interaction: discord.Interaction):
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/WwApdk4z4H"))
-        view.add_item(discord.ui.Button(label="GitHub", url="https://github.com/SleeepyTPG/Sleeeper"))
-        await interaction.response.send_message(
-            "If you need any help with my bot, join my Discord server below:", view=view
-        )
-
+        embed.add_field(name="Support Server", value="https://discord.gg/WwApdk4z4H", inline=False)
+        embed.add_field(name="GitHub", value="https://github.com/SleeepyTPG/Sleeeper", inline=False)
+        embed.set_footer(text="If you have any questions, feel free to ask in the support server.")
+        
     @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
     async def servers(self, interaction: discord.Interaction):
         guilds = self.bot.guilds
