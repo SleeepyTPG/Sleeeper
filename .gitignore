@@ -3,3 +3,6 @@ WEB/script.js
 WEB/styles.css
 .vscode/settings.json
 PY/.env
+.env
+__pycache__
+venv
