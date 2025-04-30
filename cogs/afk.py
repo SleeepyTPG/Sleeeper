@@ -1,66 +1,57 @@
+import time
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import os
+from utils import afk_remove_user, afk_get_user, afk_add_user
 
-AFK_FILE = "afk_users.json"
-
-def save_afk_users(afk_users):
-    with open(AFK_FILE, "w") as file:
-        json.dump(afk_users, file)
-
-def load_afk_users():
-    if os.path.exists(AFK_FILE):
-        with open(AFK_FILE, "r") as file:
-            return json.load(file)
-    return {}
 
 class AFK(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.afk_users = load_afk_users()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        if not message.guild:
+            return
+
         if message.author.bot:
             return
 
-        for user_id, reason in self.afk_users.items():
-            if message.mentions and user_id in [mention.id for mention in message.mentions]:
-                afk_user = await self.bot.fetch_user(user_id)
-
+        if user := afk_get_user(message.author, message.guild):
+            if message.mentions and user["member"] in [mention.id for mention in message.mentions]:
                 afk_notify_embed = discord.Embed(
                     title="🚨 User is AFK",
-                    description=f"{afk_user.mention} is currently AFK.",
+                    description=f"<@{user['member']}> is AFK since <t:{user['since']}:R>.",
                     color=discord.Color.orange()
                 )
-                afk_notify_embed.add_field(name="Reason", value=reason, inline=False)
+                afk_notify_embed.add_field(name="Reason", value=user["reason"], inline=False)
                 afk_notify_embed.set_footer(text="They will respond when they return.")
 
-                await message.reply(embed=afk_notify_embed, mention_author=False)
+                await message.reply(embed=afk_notify_embed, delete_after=10)
 
-        if message.author.id in self.afk_users:
-            del self.afk_users[message.author.id]
-            save_afk_users(self.afk_users)
+            if message.author.id == user["member"]:
+                afk_remove_user(message.author, message.guild)
 
-            afk_removed_embed = discord.Embed(
-                title="✅ Welcome Back!",
-                description=f"{message.author.mention}, your AFK status has been removed.",
-                color=discord.Color.green()
-            )
-            afk_removed_embed.set_footer(text="Glad to have you back!")
+                afk_removed_embed = discord.Embed(
+                    title="✅ Welcome Back!",
+                    description=f"{message.author.mention}, you have been AFK since <t:{user['since']}:R>.",
+                    color=discord.Color.green()
+                )
+                afk_removed_embed.set_footer(text="Glad to have you back!")
 
-            await message.channel.send(embed=afk_removed_embed, delete_after=10)
-
-        await self.bot.process_commands(message)
+                await message.channel.send(embed=afk_removed_embed, delete_after=10)
 
     @app_commands.command(name="afk", description="Set your AFK status with an optional reason.")
     @app_commands.describe(reason="The reason for going AFK")
     async def afk(self, interaction: discord.Interaction, reason: str = "No reason provided"):
         """Set the user's AFK status."""
-        self.afk_users[interaction.user.id] = reason
-        save_afk_users(self.afk_users)
+        if not interaction.guild:
+            return await interaction.response.send_message("This is a guild only command.", ephemeral=True)
+
+        if afk_get_user(interaction.user, interaction.guild):
+            return await interaction.response.send_message("Your already set as afk.", ephemeral=True)
+
+        afk_add_user(interaction.user, interaction.guild, reason)
 
         afk_embed = discord.Embed(
             title="✅ AFK Status Set",
@@ -72,5 +63,5 @@ class AFK(commands.Cog):
 
         await interaction.response.send_message(embed=afk_embed)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(AFK(bot))

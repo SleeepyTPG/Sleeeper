@@ -6,3 +6,4 @@ PY/.env
 .env
 __pycache__
 venv
+*.json
