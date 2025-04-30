@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging
 
 class Moderation(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.command(name="timeout", description="Timeout a user for a custom duration with a reason.")
