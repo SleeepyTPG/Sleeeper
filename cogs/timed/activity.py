@@ -6,10 +6,9 @@ import asyncio
 class Activity(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.total_servers = len(self.bot.guilds)
         self.activities = [
             discord.Activity(type=discord.ActivityType.watching, name="the final release of the bot"),
-            discord.Activity(type=discord.ActivityType.watching, name=f"over {self.total_servers} servers")
+            discord.Activity(type=discord.ActivityType.watching, name=f"over 0 servers")
         ]
 
     @commands.Cog.listener("on_ready")
@@ -18,6 +17,9 @@ class Activity(commands.Cog):
 
     async def _activity_loop(self):
         while not self.bot.is_closed():
+            total_servers = len(self.bot.guilds)
+            self.activities[0].name = f"over {total_servers} servers"
+
             for activity in self.activities:
                 await self.bot.change_presence(activity=activity)
                 await asyncio.sleep(10)
@@ -25,4 +27,3 @@ class Activity(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Activity(bot))
-    
