@@ -10,7 +10,7 @@ class Roast(commands.Cog):
 
     @app_commands.command(name="roast", description="Roast another user!")
     @app_commands.describe(user="The user you want to roast")
-    async def roast(self, interaction: discord.Interaction, user: discord.Member):
+    async def _roast(self, interaction: discord.Interaction, user: discord.Member):
         if user == interaction.user:
             await interaction.response.send_message("🔥 You can't roast yourself! But nice try. 😉", ephemeral=True)
             return

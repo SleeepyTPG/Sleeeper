@@ -113,7 +113,7 @@ class ServerLogging(commands.Cog):
     @app_commands.command(name="set_log_channel", description="Set the channel where logs will be sent.")
     @app_commands.describe(channel="The channel to send logs")
     @app_commands.checks.has_permissions(administrator=True)
-    async def set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
+    async def _set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not self.is_allowed_server(interaction.guild):
             await interaction.response.send_message("❌ This server is not authorized to use logging.", ephemeral=True)
             return

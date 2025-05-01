@@ -16,7 +16,7 @@ class Moderation(commands.Cog):
         reason="The reason for the timeout"
     )
     @app_commands.checks.has_permissions(moderate_members=True)
-    async def timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str):
+    async def _timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str):
         timeout_duration = timedelta(minutes=duration)
 
         try:
@@ -65,7 +65,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
     @app_commands.checks.has_permissions(manage_channels=True)
-    async def lock_channel(self, interaction: discord.Interaction):
+    async def _lock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
 
@@ -79,7 +79,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
     @app_commands.checks.has_permissions(manage_channels=True)
-    async def unlock_channel(self, interaction: discord.Interaction):
+    async def _unlock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
 

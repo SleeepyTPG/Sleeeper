@@ -10,7 +10,7 @@ class EightBall(commands.Cog):
 
     @app_commands.command(name="8ball", description="Ask the magic 8-ball a question!")
     @app_commands.describe(question="The question you want to ask the magic 8-ball")
-    async def eight_ball(self, interaction: discord.Interaction, question: str):
+    async def _eight_ball(self, interaction: discord.Interaction, question: str):
         answers = [
             "It is certain.",
             "Without a doubt.",
