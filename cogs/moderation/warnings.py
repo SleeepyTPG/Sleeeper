@@ -1,40 +1,27 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import os
+from utils import warns_set_channel, warns_add_user, warns_get_channel, warns_get_user, warns_increase_id, warns_get_id
 
-log_channels = {}
-
-warn_ids = {}
-
-WARN_ID_FILE = "warn_ids.json"
-
-if os.path.exists(WARN_ID_FILE):
-    with open(WARN_ID_FILE, "r") as file:
-        warn_ids = json.load(file)
 
 class Warnings(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    def get_next_warn_id(self, guild_id: int) -> str:
+    def get_next_warn_id(self, guild: discord.Guild) -> str:
         """Get the next sequential Warn ID for the guild."""
-        if guild_id not in warn_ids:
-            warn_ids[guild_id] = 1
-        else:
-            warn_ids[guild_id] += 1
+        warns_increase_id(guild)
+        result = warns_get_id(guild)
 
-        with open(WARN_ID_FILE, "w") as file:
-            json.dump(warn_ids, file)
-
-        return f"{warn_ids[guild_id]:04d}"
+        return f"{result['id']:04d}"
 
     @app_commands.command(name="warn", description="Warns a user and sends them a DM with the reason.")
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
-    async def warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
-        warning_id = self.get_next_warn_id(interaction.guild.id)
+    async def _warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
+        warning_id = self.get_next_warn_id(interaction.guild)
+
+        warns_add_user(user, interaction.guild, reason)
 
         dm_embed = discord.Embed(
             title="⚠️ You Have Been Warned",
@@ -65,11 +52,8 @@ class Warnings(commands.Cog):
 
         await interaction.response.send_message(embed=channel_embed)
 
-        guild_id = interaction.guild.id
-        if guild_id in log_channels:
-            log_channel_id = log_channels[guild_id]
-            log_channel = interaction.guild.get_channel(log_channel_id)
-            if log_channel:
+        if log_channel_id := warns_get_channel(interaction.guild):
+            if log_channel := interaction.guild.get_channel(log_channel_id["channel"]):
                 log_embed = discord.Embed(
                     title="⚠️ Warning Logged",
                     description=f"A warning has been issued in **{interaction.guild.name}**.",
@@ -85,12 +69,12 @@ class Warnings(commands.Cog):
     @app_commands.command(name="set_warn_log", description="Set the channel where warnings will be logged.")
     @app_commands.describe(channel="The channel to log warnings")
     @app_commands.checks.has_permissions(administrator=True)
-    async def set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
-        log_channels[interaction.guild.id] = channel.id
+    async def _set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        warns_set_channel(channel, interaction.guild)
         await interaction.response.send_message(
             f"✅ Warning log channel has been set to {channel.mention}.",
             ephemeral=True
         )
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Warnings(bot))
