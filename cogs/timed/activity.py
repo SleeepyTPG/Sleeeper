@@ -17,10 +17,9 @@ class Activity(commands.Cog):
 
     async def _activity_loop(self):
         while not self.bot.is_closed():
-            total_servers = len(self.bot.guilds)
-            self.activities[0].name = f"over {total_servers} servers"
-
             for activity in self.activities:
+                total_servers = len(self.bot.guilds)
+                self.activities[0].name = f"over {total_servers} servers"
                 await self.bot.change_presence(activity=activity)
                 await asyncio.sleep(10)
 

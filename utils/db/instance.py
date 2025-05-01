@@ -7,8 +7,11 @@ def create_collections():
         "afk",
         "marry",
         "logger",
-        "levelChannels",
         "levels",
+        "levelChannels",
         "verify",
+        "warns",
+        "warnChannels",
+        "warnIds",
     ]:
         db.create_collection(collection)
