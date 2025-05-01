@@ -5,7 +5,7 @@ from utils import level_set_channel, level_add_xp, level_get, level_get_channel,
 
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self, bot: commands.Bot, leaderboard, interaction: discord.Interaction):
+    def __init__(self, bot: app_commands, leaderboard, interaction: discord.Interaction):
         super().__init__()
         self.bot = bot
         self.leaderboard = leaderboard
