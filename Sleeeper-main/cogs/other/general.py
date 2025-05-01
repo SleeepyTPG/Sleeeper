@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 
 BOT_VERSION = "0.6.0 Beta Build"
-NEXT_VERSION = "0.6.0 Beta Build"
+NEXT_VERSION = "0.6.5 Beta Build"
 RELEASE_DATE = "05.07.2025"
 NEXT_VERSION_RELEASE_DATE = "03.05.2025"
 LEAD_DEV = 1104736921474834493
