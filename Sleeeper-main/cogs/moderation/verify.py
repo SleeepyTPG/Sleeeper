@@ -1,8 +1,9 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Button
+from utils import verify_set_role, verify_get_role
 
-verify_roles = {}
 
 class VerifyView(View):
     def __init__(self):
@@ -13,7 +14,7 @@ class VerifyView(View):
         guild = interaction.guild
         member = interaction.user
 
-        role_id = verify_roles.get(guild.id)
+        role_id = verify_get_role(guild).get("role")
         if not role_id:
             await interaction.response.send_message(
                 "❌ Verification role is not configured. Please contact an administrator.",
@@ -24,7 +25,7 @@ class VerifyView(View):
         role = guild.get_role(role_id)
         if not role:
             role = await guild.create_role(name="Verified", reason="Verification role created by bot")
-            verify_roles[guild.id] = role.id
+            verify_set_role(role, guild)
 
         await member.add_roles(role)
         await interaction.response.send_message(
@@ -32,26 +33,29 @@ class VerifyView(View):
             ephemeral=True
         )
 
+
 class Verify(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="set_verify_role", description="Sets the role to be assigned upon verification.")
+    @app_commands.command(name="set_verify_role", description="Sets the role to be assigned upon verification.")
     @commands.has_permissions(administrator=True)
-    async def set_verify_role(self, ctx, role: discord.Role):
-        verify_roles[ctx.guild.id] = role.id
-        await ctx.send(f"✅ Verification role has been set to {role.mention}.")
+    async def _set_verify_role(self, itx: discord.Interaction, role: discord.Role):
+        verify_set_role(role, itx.guild)
+        await itx.response.send_message(f"✅ Verification role has been set to {role.mention}.")
     
-    @commands.command(name="send_verify", description="Sends the verification embed.")
+    @app_commands.command(name="send_verify", description="Sends the verification embed.")
     @commands.has_permissions(administrator=True)
-    async def send_verify(self, ctx):
+    async def _send_verify(self, itx: discord.Interaction):
         embed = discord.Embed(
             title="✅ Verify Yourself",
             description="Click the **Verify** button below to verify yourself and gain access to the server.",
             color=discord.Color.green()
         )
         embed.set_footer(text="Verification System")
-        await ctx.send(embed=embed, view=VerifyView())
+        await itx.channel.send(embed=embed, view=VerifyView())
+        await itx.response.send_message("Ok, sent 👌", ephemeral=True)
 
-async def setup(bot):
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(Verify(bot))

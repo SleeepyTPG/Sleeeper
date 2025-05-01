@@ -4,8 +4,9 @@ from discord import app_commands
 from datetime import timedelta
 import logging
 
+
 class Moderation(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.command(name="timeout", description="Timeout a user for a custom duration with a reason.")
@@ -15,7 +16,7 @@ class Moderation(commands.Cog):
         reason="The reason for the timeout"
     )
     @app_commands.checks.has_permissions(moderate_members=True)
-    async def timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str):
+    async def _timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str):
         timeout_duration = timedelta(minutes=duration)
 
         try:
@@ -64,7 +65,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
     @app_commands.checks.has_permissions(manage_channels=True)
-    async def lock_channel(self, interaction: discord.Interaction):
+    async def _lock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
 
@@ -78,7 +79,7 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
     @app_commands.checks.has_permissions(manage_channels=True)
-    async def unlock_channel(self, interaction: discord.Interaction):
+    async def _unlock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
         guild = interaction.guild
 
@@ -90,5 +91,6 @@ class Moderation(commands.Cog):
             f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
         )
 
-async def setup(bot):
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))

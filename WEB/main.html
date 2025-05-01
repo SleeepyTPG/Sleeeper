@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleeeper Bot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="fade-in">Welcome to Sleeeper Bot</h1>
+            <p class="fade-in">The ultimate Discord bot to enhance your server with powerful features and seamless automation.</p>
+            <a href="https://discord.com/oauth2/authorize?client_id=1245051611584401441&permissions=8&scope=bot%20applications.commands" class="btn fade-in">Invite the Bot</a>
+        </div>
+        <button id="dark-mode-toggle" class="dark-mode-btn">
+            <span id="dark-mode-icon">☀️</span>
+        </button>
+    </header>
+
+    <section id="features">
+        <div class="container">
+            <h2 class="slide-in">Why Choose Sleeeper Bot?</h2>
+            <div class="feature-list">
+                <div class="feature zoom-in" onclick="toggleDetails('moderation-details')">
+                    <h3>⚔️ Moderation</h3>
+                    <p>Keep your server safe with advanced moderation tools like warnings, timeouts, and more.</p>
+                    <div id="moderation-details" class="details">
+                        <p>Moderation tools include:</p>
+                        <ul>
+                            <li>⚠️ Warnings: Issue warnings to users and log them for future reference.</li>
+                            <li>⏳ Timeouts: Temporarily mute users for a specified duration.</li>
+                            <li>🔨 Bans: Permanently or temporarily ban users from your server.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="feature zoom-in" onclick="toggleDetails('commands-details')">
+                    <h3>⚙️ Custom Commands</h3>
+                    <p>Create commands tailored to your server's needs for a personalized experience.</p>
+                    <div id="commands-details" class="details">
+                        <p>Custom commands allow you to:</p>
+                        <ul>
+                            <li>📜 Automate repetitive tasks.</li>
+                            <li>🎉 Add fun and interactive commands for your community.</li>
+                            <li>🔧 Configure commands to suit your server's unique needs.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="feature zoom-in" onclick="toggleDetails('verification-details')">
+                    <h3>✅ Verification</h3>
+                    <p>Verify users before granting them access to your server for added security.</p>
+                    <div id="verification-details" class="details">
+                        <p>Verification features include:</p>
+                        <ul>
+                            <li>🔒 Role-based access control to ensure only verified users can access your server.</li>
+                            <li>📩 Automated DM notifications for verification instructions.</li>
+                            <li>✅ Easy setup with customizable roles and permissions.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="commands">
+        <div class="container">
+            <h2 class="slide-in">Commands</h2>
+            <div class="commands-list">
+                <div class="command fade-in">
+                    <strong>/help</strong>
+                    <p>Displays a list of available commands.</p>
+                </div>
+                <div class="command fade-in">
+                    <strong>/timeout</strong>
+                    <p>Timeout a user with a custom duration and reason.</p>
+                </div>
+                <div class="command fade-in">
+                    <strong>/warn</strong>
+                    <p>Warn a user and log the warning.</p>
+                </div>
+                <div class="command fade-in">
+                    <strong>/verify</strong>
+                    <p>Verify users to grant them access to the server.</p>
+                </div>
+                <div class="command fade-in">
+                    <strong>/servers</strong>
+                    <p>Displays all the servers the bot is currently in.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="advertising">
+        <div class="container">
+            <h2 class="slide-in">Why Wait?</h2>
+            <p class="fade-in">Join thousands of servers already using Sleeeper Bot to enhance their communities. Click the button below to invite the bot to your server today!</p>
+            <a href="https://discord.com/oauth2/authorize?client_id=1245051611584401441&permissions=8&scope=bot%20applications.commands" class="btn fade-in">Invite Sleeeper Bot</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Sleeeper Bot. All rights reserved.</p>
+        </div>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
