@@ -4,6 +4,7 @@ from discord import app_commands
 from datetime import timedelta
 import logging
 
+
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -90,5 +91,6 @@ class Moderation(commands.Cog):
             f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
         )
 
-async def setup(bot):
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))

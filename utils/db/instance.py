@@ -6,5 +6,8 @@ def create_collections():
     for collection in (
         "afk",
         "marry",
+        "logger",
+        "levelChannels",
+        "levels",
     ):
         db.create_collection(collection)

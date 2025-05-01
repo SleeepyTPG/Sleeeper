@@ -11,8 +11,7 @@ class Bot(commands.Bot):
     def __init__(self, cog_dir: str = "cogs"):
         super().__init__(
             command_prefix="´", 
-            intents=discord.Intents.all(),
-            help_command=None
+            intents=discord.Intents.all()
         )
 
         self.cog_dir = cog_dir

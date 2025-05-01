@@ -27,6 +27,7 @@ def save_level_channels(level_channels):
     with open(LEVEL_CHANNELS_FILE, "w") as file:
         json.dump(level_channels, file)
 
+
 class LeaderboardView(discord.ui.View):
     def __init__(self, bot, leaderboard, interaction):
         super().__init__()
@@ -79,6 +80,7 @@ class LeaderboardView(discord.ui.View):
             self.current_page += 1
             self.update_buttons()
             await self.send_page()
+
 
 class LevelSystem(commands.Cog):
     def __init__(self, bot):
