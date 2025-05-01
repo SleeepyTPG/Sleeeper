@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-BOT_VERSION = "0.5.5 Beta Build"
-NEXT_VERSION = "0.5.6 Beta Build"
+BOT_VERSION = "0.6.0 Beta Build"
+NEXT_VERSION = "0.6.0 Beta Build"
 RELEASE_DATE = "05.07.2025"
-NEXT_VERSION_RELEASE_DATE = "02.05.2025"
+NEXT_VERSION_RELEASE_DATE = "03.05.2025"
 LEAD_DEV = 1104736921474834493
 HELPER = 1296122732173590651
 SUPPORT_SERVER = "https://discord.gg/WwApdk4z4H"
