@@ -65,6 +65,9 @@ class BlackjackGame(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("This is not your game!", ephemeral=True)
             return
+
+        await interaction.response.defer()
+
         self.player_hand.append(random.randint(1, 11))
         if self.calculate_score(self.player_hand) > 21:
             self.game_over = True
@@ -75,6 +78,9 @@ class BlackjackGame(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("This is not your game!", ephemeral=True)
             return
+
+        await interaction.response.defer()
+
         self.game_over = True
         while self.calculate_score(self.dealer_hand) < 17:
             self.dealer_hand.append(random.randint(1, 11))
