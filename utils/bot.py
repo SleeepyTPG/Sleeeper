@@ -18,14 +18,17 @@ class Bot(commands.Bot):
 
     async def setup_hook(self):
         for file in self._find_cogs():
-            await self.load_extension(file)
-            logger.info(f"✅ Loaded cog: {file}")
+            self.loop.create_task(self._load_cog(file)) # concurrent cog loading, bcs why not
 
         self.loop.create_task(self._sync_commands())
 
     async def _sync_commands(self):
         await self.tree.sync()
         logger.info("✅ Application commands synced with Discord.")
+
+    async def _load_cog(self, file: str):
+        await self.load_extension(file)
+        logger.info(f"✅ Loaded cog: {file}")
 
     def _find_cogs(self):
         files = glob.glob(f"{self.cog_dir}/**/*.py", recursive=True)
