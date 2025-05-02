@@ -18,60 +18,6 @@ def save_balances(balances):
     with open(CURRENCY_FILE, "w") as file:
         json.dump(balances, file)
 
-class LeaderboardView(discord.ui.View):
-    def __init__(self, bot, balances, interaction):
-        super().__init__()
-        self.bot = bot
-        self.balances = balances
-        self.interaction = interaction
-        self.current_page = 0
-        self.entries_per_page = 10
-        self.total_pages = (len(balances) - 1) // self.entries_per_page + 1
-
-        # Add navigation buttons
-        self.update_buttons()
-
-    def update_buttons(self):
-        self.clear_items()
-        if self.current_page > 0:
-            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="prev"))
-        if self.current_page < self.total_pages - 1:
-            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
-
-    async def send_page(self):
-        start_index = self.current_page * self.entries_per_page
-        end_index = start_index + self.entries_per_page
-        page_entries = list(self.balances.items())[start_index:end_index]
-
-        embed = discord.Embed(
-            title=f"🏆 Sleeeper Coins Leaderboard (Page {self.current_page + 1}/{self.total_pages})",
-            color=discord.Color.gold()
-        )
-
-        for i, (user_id, balance) in enumerate(page_entries, start=start_index + 1):
-            user = await self.bot.fetch_user(int(user_id))
-            embed.add_field(
-                name=f"{i}. {user.display_name}",
-                value=f"**Coins:** {balance}",
-                inline=False
-            )
-
-        await self.interaction.edit_original_response(embed=embed, view=self)
-
-    @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary)
-    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.current_page > 0:
-            self.current_page -= 1
-            self.update_buttons()
-            await self.send_page()
-
-    @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
-    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.current_page < self.total_pages - 1:
-            self.current_page += 1
-            self.update_buttons()
-            await self.send_page()
-
 class CurrencySystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -128,8 +74,49 @@ class CurrencySystem(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="gamble", description="Gamble your Sleeeper Coins.")
+    async def gamble(self, interaction: discord.Interaction):
+        pass
+
+    @app_commands.command(name="blackjack", description="Play Blackjack to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
-    async def gamble(self, interaction: discord.Interaction, amount: int):
+    async def blackjack(self, interaction: discord.Interaction, amount: int):
+        if amount <= 0:
+            await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
+            return
+
+        balance = self.get_balance(interaction.user.id)
+        if amount > balance:
+            await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
+            return
+
+        player_score = random.randint(16, 21)
+        dealer_score = random.randint(16, 21)
+
+        if player_score > dealer_score:
+            self.update_balance(interaction.user.id, amount)
+            embed = discord.Embed(
+                title="🃏 Blackjack Result",
+                description=f"🎉 You won! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nYou earned **{amount} Sleeeper Coins**!",
+                color=discord.Color.green()
+            )
+        elif player_score < dealer_score:
+            self.update_balance(interaction.user.id, -amount)
+            embed = discord.Embed(
+                title="🃏 Blackjack Result",
+                description=f"😢 You lost! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nYou lost **{amount} Sleeeper Coins**.",
+                color=discord.Color.red()
+            )
+        else:
+            embed = discord.Embed(
+                title="🃏 Blackjack Result",
+                description=f"🤝 It's a tie! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nNo coins were lost or gained.",
+                color=discord.Color.orange()
+            )
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="doubleornothing", description="Play Double or Nothing to gamble your Sleeeper Coins.")
+    @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
+    async def double_or_nothing(self, interaction: discord.Interaction, amount: int):
         if amount <= 0:
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
@@ -144,52 +131,52 @@ class CurrencySystem(commands.Cog):
             winnings = amount * 2
             self.update_balance(interaction.user.id, winnings)
             embed = discord.Embed(
-                title="🎲 Gambling Result",
-                description=f"🎉 {interaction.user.mention}, you won **{winnings} Sleeeper Coins**!",
+                title="🎲 Double or Nothing Result",
+                description=f"🎉 You won! You doubled your bet and earned **{winnings} Sleeeper Coins**!",
                 color=discord.Color.green()
             )
         else:
             self.update_balance(interaction.user.id, -amount)
             embed = discord.Embed(
-                title="🎲 Gambling Result",
-                description=f"😢 {interaction.user.mention}, you lost **{amount} Sleeeper Coins**.",
+                title="🎲 Double or Nothing Result",
+                description=f"😢 You lost! You lost **{amount} Sleeeper Coins**.",
                 color=discord.Color.red()
             )
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="trade", description="Trade Sleeeper Coins with another user.")
-    @app_commands.describe(user="The user to trade with.", amount="The amount of Sleeeper Coins to trade.")
-    async def trade(self, interaction: discord.Interaction, user: discord.Member, amount: int):
+    @app_commands.command(name="roulette", description="Play Roulette to gamble your Sleeeper Coins.")
+    @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.", color="Choose red or black.")
+    async def roulette(self, interaction: discord.Interaction, amount: int, color: str):
         if amount <= 0:
-            await interaction.response.send_message("❌ You must trade a positive amount.", ephemeral=True)
+            await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
         balance = self.get_balance(interaction.user.id)
         if amount > balance:
-            await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to trade that amount.", ephemeral=True)
+            await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
 
-        self.update_balance(interaction.user.id, -amount)
-        self.update_balance(user.id, amount)
+        if color.lower() not in ["red", "black"]:
+            await interaction.response.send_message("❌ You must choose either 'red' or 'black'.", ephemeral=True)
+            return
 
-        embed = discord.Embed(
-            title="🤝 Trade Successful",
-            description=f"{interaction.user.mention} traded **{amount} Sleeeper Coins** with {user.mention}.",
-            color=discord.Color.blue()
-        )
+        winning_color = random.choice(["red", "black"])
+        if color.lower() == winning_color:
+            winnings = amount * 2
+            self.update_balance(interaction.user.id, winnings)
+            embed = discord.Embed(
+                title="🎡 Roulette Result",
+                description=f"🎉 You won! The ball landed on **{winning_color}**.\nYou earned **{winnings} Sleeeper Coins**!",
+                color=discord.Color.green()
+            )
+        else:
+            self.update_balance(interaction.user.id, -amount)
+            embed = discord.Embed(
+                title="🎡 Roulette Result",
+                description=f"😢 You lost! The ball landed on **{winning_color}**.\nYou lost **{amount} Sleeeper Coins**.",
+                color=discord.Color.red()
+            )
         await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="coins-leaderboard", description="Show the Sleeeper Coins leaderboard.")
-    async def coins_leaderboard(self, interaction: discord.Interaction):
-        if not self.balances:
-            await interaction.response.send_message("No data available for the leaderboard.", ephemeral=True)
-            return
-
-        sorted_balances = dict(sorted(self.balances.items(), key=lambda item: item[1], reverse=True))
-
-        view = LeaderboardView(self.bot, sorted_balances, interaction)
-        await interaction.response.send_message("Loading leaderboard...", ephemeral=False)
-        await view.send_page()
 
 async def setup(bot):
     await bot.add_cog(CurrencySystem(bot))
