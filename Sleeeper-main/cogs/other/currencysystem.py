@@ -18,6 +18,68 @@ def save_balances(balances):
     with open(CURRENCY_FILE, "w") as file:
         json.dump(balances, file)
 
+class BlackjackGame(discord.ui.View):
+    def __init__(self, bot, interaction, user_id, bet, update_balance):
+        super().__init__()
+        self.bot = bot
+        self.interaction = interaction
+        self.user_id = user_id
+        self.bet = bet
+        self.update_balance = update_balance
+        self.player_hand = [random.randint(1, 11), random.randint(1, 11)]
+        self.dealer_hand = [random.randint(1, 11), random.randint(1, 11)]
+        self.game_over = False
+
+    def calculate_score(self, hand):
+        return sum(hand)
+
+    async def update_message(self):
+        player_score = self.calculate_score(self.player_hand)
+        dealer_score = self.calculate_score(self.dealer_hand) if self.game_over else "??"
+        embed = discord.Embed(
+            title="🃏 Blackjack",
+            description=(
+                f"**Your Hand:** {self.player_hand} (Score: {player_score})\n"
+                f"**Dealer's Hand:** {self.dealer_hand if self.game_over else [self.dealer_hand[0], '??']} (Score: {dealer_score})"
+            ),
+            color=discord.Color.blue()
+        )
+        if self.game_over:
+            if player_score > 21:
+                result = "😢 You busted! You lost your bet."
+                self.update_balance(self.user_id, -self.bet)
+            elif dealer_score > 21 or player_score > dealer_score:
+                result = f"🎉 You won! You earned **{self.bet} Sleeeper Coins**."
+                self.update_balance(self.user_id, self.bet)
+            elif player_score < dealer_score:
+                result = "😢 You lost! The dealer wins."
+                self.update_balance(self.user_id, -self.bet)
+            else:
+                result = "🤝 It's a tie! No coins were lost or gained."
+            embed.add_field(name="Result", value=result, inline=False)
+            self.clear_items()  # Remove buttons when the game is over
+        await self.interaction.edit_original_response(embed=embed, view=self)
+
+    @discord.ui.button(label="Hit", style=discord.ButtonStyle.green)
+    async def hit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This is not your game!", ephemeral=True)
+            return
+        self.player_hand.append(random.randint(1, 11))
+        if self.calculate_score(self.player_hand) > 21:
+            self.game_over = True
+        await self.update_message()
+
+    @discord.ui.button(label="Stand", style=discord.ButtonStyle.red)
+    async def stand(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This is not your game!", ephemeral=True)
+            return
+        self.game_over = True
+        while self.calculate_score(self.dealer_hand) < 17:
+            self.dealer_hand.append(random.randint(1, 11))
+        await self.update_message()
+
 class CurrencySystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -73,10 +135,6 @@ class CurrencySystem(commands.Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="gamble", description="Gamble your Sleeeper Coins.")
-    async def gamble(self, interaction: discord.Interaction):
-        pass
-
     @app_commands.command(name="blackjack", description="Play Blackjack to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
     async def blackjack(self, interaction: discord.Interaction, amount: int):
@@ -89,30 +147,16 @@ class CurrencySystem(commands.Cog):
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
 
-        player_score = random.randint(16, 21)
-        dealer_score = random.randint(16, 21)
-
-        if player_score > dealer_score:
-            self.update_balance(interaction.user.id, amount)
-            embed = discord.Embed(
-                title="🃏 Blackjack Result",
-                description=f"🎉 You won! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nYou earned **{amount} Sleeeper Coins**!",
-                color=discord.Color.green()
-            )
-        elif player_score < dealer_score:
-            self.update_balance(interaction.user.id, -amount)
-            embed = discord.Embed(
-                title="🃏 Blackjack Result",
-                description=f"😢 You lost! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nYou lost **{amount} Sleeeper Coins**.",
-                color=discord.Color.red()
-            )
-        else:
-            embed = discord.Embed(
-                title="🃏 Blackjack Result",
-                description=f"🤝 It's a tie! Your score: **{player_score}**, Dealer's score: **{dealer_score}**.\nNo coins were lost or gained.",
-                color=discord.Color.orange()
-            )
-        await interaction.response.send_message(embed=embed)
+        view = BlackjackGame(self.bot, interaction, interaction.user.id, amount, self.update_balance)
+        embed = discord.Embed(
+            title="🃏 Blackjack",
+            description=(
+                f"**Your Hand:** {view.player_hand} (Score: {sum(view.player_hand)})\n"
+                f"**Dealer's Hand:** [{view.dealer_hand[0]}, '??'] (Score: ??)"
+            ),
+            color=discord.Color.blue()
+        )
+        await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="doubleornothing", description="Play Double or Nothing to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
