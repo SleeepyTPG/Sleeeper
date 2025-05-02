@@ -18,6 +18,60 @@ def save_balances(balances):
     with open(CURRENCY_FILE, "w") as file:
         json.dump(balances, file)
 
+class LeaderboardView(discord.ui.View):
+    def __init__(self, bot, balances, interaction):
+        super().__init__()
+        self.bot = bot
+        self.balances = balances
+        self.interaction = interaction
+        self.current_page = 0
+        self.entries_per_page = 10
+        self.total_pages = (len(balances) - 1) // self.entries_per_page + 1
+
+        # Add navigation buttons
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.clear_items()
+        if self.current_page > 0:
+            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="prev"))
+        if self.current_page < self.total_pages - 1:
+            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
+
+    async def send_page(self):
+        start_index = self.current_page * self.entries_per_page
+        end_index = start_index + self.entries_per_page
+        page_entries = list(self.balances.items())[start_index:end_index]
+
+        embed = discord.Embed(
+            title=f"🏆 Sleeeper Coins Leaderboard (Page {self.current_page + 1}/{self.total_pages})",
+            color=discord.Color.gold()
+        )
+
+        for i, (user_id, balance) in enumerate(page_entries, start=start_index + 1):
+            user = await self.bot.fetch_user(int(user_id))
+            embed.add_field(
+                name=f"{i}. {user.display_name}",
+                value=f"**Coins:** {balance}",
+                inline=False
+            )
+
+        await self.interaction.edit_original_response(embed=embed, view=self)
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_buttons()
+            await self.send_page()
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self.update_buttons()
+            await self.send_page()
+
 class CurrencySystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -124,6 +178,18 @@ class CurrencySystem(commands.Cog):
             color=discord.Color.blue()
         )
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="coins-leaderboard", description="Show the Sleeeper Coins leaderboard.")
+    async def coins_leaderboard(self, interaction: discord.Interaction):
+        if not self.balances:
+            await interaction.response.send_message("No data available for the leaderboard.", ephemeral=True)
+            return
+
+        sorted_balances = dict(sorted(self.balances.items(), key=lambda item: item[1], reverse=True))
+
+        view = LeaderboardView(self.bot, sorted_balances, interaction)
+        await interaction.response.send_message("Loading leaderboard...", ephemeral=False)
+        await view.send_page()
 
 async def setup(bot):
     await bot.add_cog(CurrencySystem(bot))
