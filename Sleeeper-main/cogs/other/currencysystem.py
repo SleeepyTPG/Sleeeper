@@ -4,6 +4,7 @@ from discord import app_commands
 import random
 import json
 import os
+import time
 
 CURRENCY_FILE = "currency.json"
 
@@ -21,6 +22,7 @@ class CurrencySystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.balances = load_balances()
+        self.work_cooldowns = {}
 
     def get_balance(self, user_id: int):
         return self.balances.get(str(user_id), 0)
@@ -44,8 +46,26 @@ class CurrencySystem(commands.Cog):
 
     @app_commands.command(name="work", description="Work to earn Sleeeper Coins.")
     async def work(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+        current_time = time.time()
+        cooldown_time = 2 * 60 * 60
+
+        if user_id in self.work_cooldowns:
+            last_used = self.work_cooldowns[user_id]
+            time_remaining = cooldown_time - (current_time - last_used)
+            if time_remaining > 0:
+                minutes, seconds = divmod(int(time_remaining), 60)
+                hours, minutes = divmod(minutes, 60)
+                await interaction.response.send_message(
+                    f"⏳ You need to wait **{hours}h {minutes}m {seconds}s** before using `/work` again.",
+                    ephemeral=True
+                )
+                return
+
         earnings = random.randint(50, 200)
-        self.update_balance(interaction.user.id, earnings)
+        self.update_balance(user_id, earnings)
+        self.work_cooldowns[user_id] = current_time
+
         embed = discord.Embed(
             title="🛠️ Work Completed",
             description=f"{interaction.user.mention}, you earned **{earnings} Sleeeper Coins** for your work!",
