@@ -86,32 +86,41 @@ class CurrencySystem(commands.Cog):
         self.balances = load_balances()
         self.work_cooldowns = {}
 
-    def get_balance(self, user_id: int):
-        return self.balances.get(str(user_id), 0)
-
-    def update_balance(self, user_id: int, amount: int):
+    def get_balance(self, guild_id: int, user_id: int):
+        guild_id = str(guild_id)
         user_id = str(user_id)
-        if user_id not in self.balances:
-            self.balances[user_id] = 0
-        self.balances[user_id] += amount
+        return self.balances.get(guild_id, {}).get(user_id, 0)
+
+    def update_balance(self, guild_id: int, user_id: int, amount: int):
+        guild_id = str(guild_id)
+        user_id = str(user_id)
+        if guild_id not in self.balances:
+            self.balances[guild_id] = {}
+        if user_id not in self.balances[guild_id]:
+            self.balances[guild_id][user_id] = 0
+        self.balances[guild_id][user_id] += amount
         save_balances(self.balances)
 
     @app_commands.command(name="balance", description="Check your Sleeeper Coins balance.")
     async def balance(self, interaction: discord.Interaction):
-        balance = self.get_balance(interaction.user.id)
+        guild_id = interaction.guild.id
+        user_id = interaction.user.id
+        balance = self.get_balance(guild_id, user_id)
         embed = discord.Embed(
             title="💰 Sleeeper Coins Balance",
-            description=f"{interaction.user.mention}, you have **{balance} Sleeeper Coins**.",
+            description=f"{interaction.user.mention}, you have **{balance} Sleeeper Coins** in this server.",
             color=discord.Color.gold()
         )
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="work", description="Work to earn Sleeeper Coins.")
     async def work(self, interaction: discord.Interaction):
+        guild_id = interaction.guild.id
         user_id = interaction.user.id
         current_time = time.time()
         cooldown_time = 2 * 60 * 60
 
+        # Check if the user is on cooldown
         if user_id in self.work_cooldowns:
             last_used = self.work_cooldowns[user_id]
             time_remaining = cooldown_time - (current_time - last_used)
@@ -125,7 +134,7 @@ class CurrencySystem(commands.Cog):
                 return
 
         earnings = random.randint(50, 200)
-        self.update_balance(user_id, earnings)
+        self.update_balance(guild_id, user_id, earnings)
         self.work_cooldowns[user_id] = current_time
 
         embed = discord.Embed(
@@ -138,16 +147,19 @@ class CurrencySystem(commands.Cog):
     @app_commands.command(name="blackjack", description="Play Blackjack to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
     async def blackjack(self, interaction: discord.Interaction, amount: int):
+        guild_id = interaction.guild.id
+        user_id = interaction.user.id
+
         if amount <= 0:
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
-        balance = self.get_balance(interaction.user.id)
+        balance = self.get_balance(guild_id, user_id)
         if amount > balance:
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
 
-        view = BlackjackGame(self.bot, interaction, interaction.user.id, amount, self.update_balance)
+        view = BlackjackGame(self.bot, interaction, user_id, amount, lambda uid, amt: self.update_balance(guild_id, uid, amt))
         embed = discord.Embed(
             title="🃏 Blackjack",
             description=(
@@ -161,11 +173,14 @@ class CurrencySystem(commands.Cog):
     @app_commands.command(name="doubleornothing", description="Play Double or Nothing to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
     async def double_or_nothing(self, interaction: discord.Interaction, amount: int):
+        guild_id = interaction.guild.id
+        user_id = interaction.user.id
+
         if amount <= 0:
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
-        balance = self.get_balance(interaction.user.id)
+        balance = self.get_balance(guild_id, user_id)
         if amount > balance:
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
@@ -173,14 +188,14 @@ class CurrencySystem(commands.Cog):
         outcome = random.choice(["win", "lose"])
         if outcome == "win":
             winnings = amount * 2
-            self.update_balance(interaction.user.id, winnings)
+            self.update_balance(guild_id, user_id, winnings)
             embed = discord.Embed(
                 title="🎲 Double or Nothing Result",
                 description=f"🎉 You won! You doubled your bet and earned **{winnings} Sleeeper Coins**!",
                 color=discord.Color.green()
             )
         else:
-            self.update_balance(interaction.user.id, -amount)
+            self.update_balance(guild_id, user_id, -amount)
             embed = discord.Embed(
                 title="🎲 Double or Nothing Result",
                 description=f"😢 You lost! You lost **{amount} Sleeeper Coins**.",
@@ -191,11 +206,14 @@ class CurrencySystem(commands.Cog):
     @app_commands.command(name="roulette", description="Play Roulette to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.", color="Choose red or black.")
     async def roulette(self, interaction: discord.Interaction, amount: int, color: str):
+        guild_id = interaction.guild.id
+        user_id = interaction.user.id
+
         if amount <= 0:
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
-        balance = self.get_balance(interaction.user.id)
+        balance = self.get_balance(guild_id, user_id)
         if amount > balance:
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
@@ -207,14 +225,14 @@ class CurrencySystem(commands.Cog):
         winning_color = random.choice(["red", "black"])
         if color.lower() == winning_color:
             winnings = amount * 2
-            self.update_balance(interaction.user.id, winnings)
+            self.update_balance(guild_id, user_id, winnings)
             embed = discord.Embed(
                 title="🎡 Roulette Result",
                 description=f"🎉 You won! The ball landed on **{winning_color}**.\nYou earned **{winnings} Sleeeper Coins**!",
                 color=discord.Color.green()
             )
         else:
-            self.update_balance(interaction.user.id, -amount)
+            self.update_balance(guild_id, user_id, -amount)
             embed = discord.Embed(
                 title="🎡 Roulette Result",
                 description=f"😢 You lost! The ball landed on **{winning_color}**.\nYou lost **{amount} Sleeeper Coins**.",
