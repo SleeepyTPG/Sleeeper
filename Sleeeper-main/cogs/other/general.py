@@ -11,6 +11,12 @@ HELPER = 1296122732173590651
 SUPPORT_SERVER = "https://discord.gg/WwApdk4z4H"
 GITHUB_LINK = "https://github.com/SleeepyTPG/Sleeeper"
 
+class HelpView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(discord.ui.Button(label="Support Server", url=SUPPORT_SERVER, style=discord.ButtonStyle.link))
+        self.add_item(discord.ui.Button(label="GitHub", url=GITHUB_LINK, style=discord.ButtonStyle.link))
+
 class General(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -48,12 +54,11 @@ class General(commands.Cog):
     async def help(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="Help",
-            description="Need help? Join our support server or check out the GitHub repository.",
+            description="Need help? Use the buttons below to join our support server or visit the GitHub repository.",
             color=discord.Color.blue()
         )
-        embed.add_field(name="Support Server", value=SUPPORT_SERVER, inline=False)
-        embed.add_field(name="GitHub", value=GITHUB_LINK, inline=False)
         embed.set_footer(text="If you have any questions, feel free to ask in the support server.")
+        await interaction.response.send_message(embed=embed, view=HelpView())
 
     @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
     async def servers(self, interaction: discord.Interaction):
