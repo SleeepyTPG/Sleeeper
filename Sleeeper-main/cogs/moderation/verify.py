@@ -38,13 +38,13 @@ class Verify(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands(name="set_verify_role", description="Sets the role to be assigned upon verification.")
+    @app_commands.command(name="set_verify_role", description="Sets the role to be assigned upon verification.")
     @commands.has_permissions(administrator=True)
     async def _set_verify_role(self, itx: discord.Interaction, role: discord.Role):
         verify_set_role(role, itx.guild)
         await itx.response.send_message(f"✅ Verification role has been set to {role.mention}.")
     
-    @app_commands(name="send_verify", description="Sends the verification embed.")
+    @app_commands.command(name="send_verify", description="Sends the verification embed.")
     @commands.has_permissions(administrator=True)
     async def _send_verify(self, itx: discord.Interaction):
         embed = discord.Embed(

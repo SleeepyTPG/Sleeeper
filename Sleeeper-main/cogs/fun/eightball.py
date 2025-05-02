@@ -8,7 +8,7 @@ class EightBall(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands(name="8ball", description="Ask the magic 8-ball a question!")
+    @app_commands.command(name="8ball", description="Ask the magic 8-ball a question!")
     @app_commands.describe(question="The question you want to ask the magic 8-ball")
     async def _eight_ball(self, interaction: discord.Interaction, question: str):
         answers = [

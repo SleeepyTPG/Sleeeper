@@ -110,7 +110,7 @@ class ServerLogging(commands.Cog):
             embed.set_footer(text=f"User ID: {before.author.id}")
             await log_channel.send(embed=embed)
 
-    @app_commands(name="set_log_channel", description="Set the channel where logs will be sent.")
+    @app_commands.command(name="set_log_channel", description="Set the channel where logs will be sent.")
     @app_commands.describe(channel="The channel to send logs")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):

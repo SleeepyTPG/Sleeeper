@@ -41,7 +41,7 @@ class AFK(commands.Cog):
 
                 await message.channel.send(embed=afk_removed_embed, delete_after=10)
 
-    @app_commands(name="afk", description="Set your AFK status with an optional reason.")
+    @app_commands.command(name="afk", description="Set your AFK status with an optional reason.")
     @app_commands.describe(reason="The reason for going AFK")
     async def afk(self, interaction: discord.Interaction, reason: str = "No reason provided"):
         if not interaction.guild:

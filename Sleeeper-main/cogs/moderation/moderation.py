@@ -9,7 +9,7 @@ class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands(name="timeout", description="Timeout a user for a custom duration with a reason.")
+    @app_commands.command(name="timeout", description="Timeout a user for a custom duration with a reason.")
     @app_commands.describe(
         user="The user to timeout",
         duration="The duration of the timeout in minutes",
@@ -63,7 +63,7 @@ class Moderation(commands.Cog):
 
         logging.info(f"⏳ {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
-    @app_commands(name="lock_channel", description="Locks the current channel so no one can write.")
+    @app_commands.command(name="lock_channel", description="Locks the current channel so no one can write.")
     @app_commands.checks.has_permissions(manage_channels=True)
     async def _lock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel
@@ -77,7 +77,7 @@ class Moderation(commands.Cog):
             f"🔒 The channel {channel.mention} has been locked. Members can no longer write here."
         )
 
-    @app_commands(name="unlock_channel", description="Unlocks the current channel so members can write again.")
+    @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
     @app_commands.checks.has_permissions(manage_channels=True)
     async def _unlock_channel(self, interaction: discord.Interaction):
         channel = interaction.channel

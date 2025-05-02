@@ -15,12 +15,12 @@ class General(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands(name="ping", description="Responds with the current latency")
+    @app_commands.command(name="ping", description="Responds with the current latency")
     async def ping(self, interaction: discord.Interaction):
         latency = round(self.bot.latency * 1000)
         await interaction.response.send_message(f"Pong! 🏓 {latency}ms")
 
-    @app_commands(name="info", description="Shows information about the bot")
+    @app_commands.command(name="info", description="Shows information about the bot")
     async def info(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Bot Info", color=discord.Color.blue())
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
@@ -30,7 +30,7 @@ class General(commands.Cog):
         embed.add_field(name="Support Server", value=SUPPORT_SERVER, inline=False)
         await interaction.response.send_message(embed=embed)
 
-    @app_commands(name="version", description="Shows the current version")
+    @app_commands.command(name="version", description="Shows the current version")
     async def version_info(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Version Info", color=discord.Color.blue())
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
@@ -44,7 +44,7 @@ class General(commands.Cog):
         embed.set_footer(text="For more information, visit the support server.")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands(name="help", description="Get help with the bot")
+    @app_commands.command(name="help", description="Get help with the bot")
     async def help(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="Help",
@@ -55,7 +55,7 @@ class General(commands.Cog):
         embed.add_field(name="GitHub", value=GITHUB_LINK, inline=False)
         embed.set_footer(text="If you have any questions, feel free to ask in the support server.")
 
-    @app_commands(name="servers", description="Shows the list of servers the bot is in.")
+    @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
     async def servers(self, interaction: discord.Interaction):
         guilds = self.bot.guilds
         embed = discord.Embed(

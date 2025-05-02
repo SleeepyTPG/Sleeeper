@@ -9,13 +9,12 @@ class Warnings(commands.Cog):
         self.bot = bot
 
     def get_next_warn_id(self, guild: discord.Guild) -> str:
-        """Get the next sequential Warn ID for the guild."""
         warns_increase_id(guild)
         result = warns_get_id(guild)
 
         return f"{result['id']:04d}"
 
-    @app_commands(name="warn", description="Warns a user and sends them a DM with the reason.")
+    @app_commands.command(name="warn", description="Warns a user and sends them a DM with the reason.")
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
     async def _warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
@@ -66,7 +65,7 @@ class Warnings(commands.Cog):
                 log_embed.set_footer(text="Warning Log")
                 await log_channel.send(embed=log_embed)
 
-    @app_commands(name="set_warn_log", description="Set the channel where warnings will be logged.")
+    @app_commands.command(name="set_warn_log", description="Set the channel where warnings will be logged.")
     @app_commands.describe(channel="The channel to log warnings")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
