@@ -15,7 +15,7 @@ class Warnings(commands.Cog):
 
         return f"{result['id']:04d}"
 
-    @app_commands.command(name="warn", description="Warns a user and sends them a DM with the reason.")
+    @app_commands(name="warn", description="Warns a user and sends them a DM with the reason.")
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
     async def _warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
@@ -66,7 +66,7 @@ class Warnings(commands.Cog):
                 log_embed.set_footer(text="Warning Log")
                 await log_channel.send(embed=log_embed)
 
-    @app_commands.command(name="set_warn_log", description="Set the channel where warnings will be logged.")
+    @app_commands(name="set_warn_log", description="Set the channel where warnings will be logged.")
     @app_commands.describe(channel="The channel to log warnings")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):

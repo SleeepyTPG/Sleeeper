@@ -85,7 +85,7 @@ class LevelSystem(commands.Cog):
 
             await message.channel.send(embed=embed)
 
-    @app_commands.command(name="rank", description="Check your current level and XP.")
+    @app_commands(name="rank", description="Check your current level and XP.")
     async def _rank(self, interaction: discord.Interaction):
         user_data = level_get(interaction.user, interaction.guild)
         embed = discord.Embed(
@@ -96,7 +96,7 @@ class LevelSystem(commands.Cog):
         embed.set_footer(text="Keep chatting to earn more XP!")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="leaderboard", description="Show the server's top users by level.")
+    @app_commands(name="leaderboard", description="Show the server's top users by level.")
     async def _leaderboard(self, interaction: discord.Interaction):
         levels = level_get_all(interaction.guild)
         if levels == None:
@@ -117,7 +117,7 @@ class LevelSystem(commands.Cog):
         await interaction.response.send_message("Loading leaderboard...", ephemeral=False)
         await view.send_page()
 
-    @app_commands.command(name="set_level_channel", description="Set the channel where level-up messages will be sent.")
+    @app_commands(name="set_level_channel", description="Set the channel where level-up messages will be sent.")
     @app_commands.describe(channel="The channel to send level-up messages")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_level_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):

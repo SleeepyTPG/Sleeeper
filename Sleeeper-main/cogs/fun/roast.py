@@ -8,7 +8,7 @@ class Roast(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="roast", description="Roast another user!")
+    @app_commands(name="roast", description="Roast another user!")
     @app_commands.describe(user="The user you want to roast")
     async def _roast(self, interaction: discord.Interaction, user: discord.Member):
         if user == interaction.user:

@@ -50,7 +50,7 @@ class Marry(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="marry", description="Propose to another user!")
+    @app_commands(name="marry", description="Propose to another user!")
     @app_commands.describe(user="The user you want to marry")
     async def _marry(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.guild:
@@ -83,7 +83,7 @@ class Marry(commands.Cog):
         view = ProposalView(proposer=interaction.user, proposee=user)
         await interaction.response.send_message(embed=embed, view=view)
 
-    @app_commands.command(name="divorce", description="Divorce your current partner.")
+    @app_commands(name="divorce", description="Divorce your current partner.")
     async def _divorce(self, interaction: discord.Interaction):
         if not interaction.guild:
             return await interaction.response.send_message("This is a guild only command!", ephemeral=True)
