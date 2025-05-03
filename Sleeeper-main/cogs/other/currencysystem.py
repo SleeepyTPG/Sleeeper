@@ -126,7 +126,6 @@ class CurrencySystem(commands.Cog):
         current_time = time.time()
         cooldown_time = 2 * 60 * 60
 
-        # Check if the user is on cooldown
         if user_id in self.work_cooldowns:
             last_used = self.work_cooldowns[user_id]
             time_remaining = cooldown_time - (current_time - last_used)
