@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 
-CURRENT_VERSION = "0.6.0 Beta Build"
+CURRENT_VERSION = "0.6.3 Beta Build"
 
 class Activity(commands.Cog):
     def __init__(self, bot: commands.Bot):
