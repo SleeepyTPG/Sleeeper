@@ -1,8 +1,11 @@
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Button
 from utils import verify_set_role, verify_get_role
+import random
+import string
 
 
 class VerifyView(View):
@@ -27,8 +30,24 @@ class VerifyView(View):
             role = await guild.create_role(name="Verified", reason="Verification role created by bot")
             verify_set_role(role, guild)
 
-        await member.add_roles(role)
+        captcha = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
         await interaction.response.send_message(
+            f"🛡️ Please complete the CAPTCHA to verify yourself:\n\n`{captcha}`\n\nType the CAPTCHA in this channel.",
+            ephemeral=True
+        )
+
+        def check(msg):
+            return msg.author == member and msg.channel == interaction.channel and msg.content == captcha
+
+        try:
+            msg = await self.bot.wait_for("message", check=check, timeout=60.0)
+        except asyncio.TimeoutError:
+            await interaction.followup.send("❌ CAPTCHA verification failed. Please try again.", ephemeral=True)
+            return
+
+        await member.add_roles(role)
+        await interaction.followup.send(
             f"✅ You have been verified and assigned the {role.mention} role!",
             ephemeral=True
         )
