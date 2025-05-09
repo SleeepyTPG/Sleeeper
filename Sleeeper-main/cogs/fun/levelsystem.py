@@ -33,11 +33,14 @@ class LeaderboardView(discord.ui.View):
             color=discord.Color.gold()
         )
 
-        for i, (user_id, data) in enumerate(page_entries, start=start_index + 1):
+        for i, entry in enumerate(page_entries, start=start_index + 1):
+            user_id = entry["user_id"]
+            level = entry["level"]
+            xp = entry["xp"]
             user = await self.bot.fetch_user(int(user_id))
             embed.add_field(
                 name=f"{i}. {user.display_name}",
-                value=f"**Level:** {data['level']} | **XP:** {data['xp']}",
+                value=f"**Level:** {level} | **XP:** {xp}",
                 inline=False
             )
 
@@ -99,9 +102,11 @@ class LevelSystem(commands.Cog):
     @app_commands.command(name="leaderboard", description="Show the server's top users by level.")
     async def _leaderboard(self, interaction: discord.Interaction):
         levels = level_get_all(interaction.guild)
-        if levels == None:
+        if levels is None:
             await interaction.response.send_message("No data available for this server.", ephemeral=True)
             return
+
+        print(f"Levels data: {levels}")
 
         leaderboard = sorted(
             levels,
