@@ -33,5 +33,21 @@ def marry_remove_user(member: discord.Member):
     coll.delete({
         "member2": member.id
     })
-
     return result
+
+coll = db.get_collection("adoption")
+
+def adopt_user(adopter: discord.Member, adoptee: discord.Member):
+    coll.insert_one({
+        "adopter": adopter.id,
+        "adoptee": adoptee.id
+    })
+
+def get_adoption_data(user: discord.Member):
+    result = coll.find_one({"adoptee": user.id})
+    if result:
+        return result
+    return None
+
+def remove_adoption(adoptee: discord.Member):
+    coll.delete_one({"adoptee": adoptee.id})
