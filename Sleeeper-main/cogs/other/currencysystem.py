@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -50,7 +51,7 @@ class BlackjackGame(discord.ui.View):
                 self.update_balance(self.user_id, -self.bet)
             elif dealer_score > 21 or player_score > dealer_score:
                 result = f"🎉 You won! You earned **{self.bet} Sleeeper Coins**."
-                self.update_balance(self.user_id, self.bet)
+                self.update_balance(self.user_id, self.bet * 2)
             elif player_score < dealer_score:
                 result = "😢 You lost! The dealer wins."
                 self.update_balance(self.user_id, -self.bet)
@@ -119,7 +120,7 @@ class CurrencySystem(commands.Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="work", description="Work to earn Sleeeper Coins.")
+    @app_commands.command(name="work", description="Play a mini-game to earn Sleeeper Coins.")
     async def work(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id
         user_id = interaction.user.id
@@ -138,16 +139,66 @@ class CurrencySystem(commands.Cog):
                 )
                 return
 
-        earnings = random.randint(50, 200)
-        self.update_balance(guild_id, user_id, earnings)
-        self.work_cooldowns[user_id] = current_time
+        mini_game = random.choice(["math", "trivia"])
 
-        embed = discord.Embed(
-            title="🛠️ Work Completed",
-            description=f"{interaction.user.mention}, you earned **{earnings} Sleeeper Coins** for your work!",
-            color=discord.Color.green()
-        )
-        await interaction.response.send_message(embed=embed)
+        if mini_game == "math":
+            num1 = random.randint(1, 10)
+            num2 = random.randint(1, 10)
+            correct_answer = num1 + num2
+
+            await interaction.response.send_message(
+                f"🧮 Solve this math problem to earn coins: **{num1} + {num2} = ?**",
+                ephemeral=True
+            )
+
+            def check(msg):
+                return msg.author.id == user_id and msg.channel == interaction.channel
+
+            try:
+                msg = await self.bot.wait_for("message", check=check, timeout=30.0)
+                if int(msg.content) == correct_answer:
+                    earnings = random.randint(50, 200)
+                    self.update_balance(guild_id, user_id, earnings)
+                    self.work_cooldowns[user_id] = current_time
+                    await interaction.followup.send(
+                        f"✅ Correct! You earned **{earnings} Sleeeper Coins**.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send("❌ Incorrect answer. Better luck next time!", ephemeral=True)
+            except asyncio.TimeoutError:
+                await interaction.followup.send("❌ Time's up! You didn't answer in time.", ephemeral=True)
+
+        elif mini_game == "trivia":
+            trivia_questions = [
+                {"question": "What is the capital of France?", "answer": "paris"},
+                {"question": "What is 5 x 6?", "answer": "30"},
+                {"question": "Who wrote 'To Kill a Mockingbird'?", "answer": "harper lee"},
+            ]
+            trivia = random.choice(trivia_questions)
+
+            await interaction.response.send_message(
+                f"❓ Answer this trivia question to earn coins: **{trivia['question']}**",
+                ephemeral=True
+            )
+
+            def check(msg):
+                return msg.author.id == user_id and msg.channel == interaction.channel
+
+            try:
+                msg = await self.bot.wait_for("message", check=check, timeout=30.0)
+                if msg.content.lower() == trivia["answer"]:
+                    earnings = random.randint(50, 200)
+                    self.update_balance(guild_id, user_id, earnings)
+                    self.work_cooldowns[user_id] = current_time
+                    await interaction.followup.send(
+                        f"✅ Correct! You earned **{earnings} Sleeeper Coins**.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send("❌ Incorrect answer. Better luck next time!", ephemeral=True)
+            except asyncio.TimeoutError:
+                await interaction.followup.send("❌ Time's up! You didn't answer in time.", ephemeral=True)
 
     @app_commands.command(name="blackjack", description="Play Blackjack to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")

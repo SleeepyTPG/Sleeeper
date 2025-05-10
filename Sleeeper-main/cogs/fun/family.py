@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import marry_add_user, marry_get_user, marry_remove_user
+from utils import marry_add_user, marry_get_user, marry_remove_user, adopt_user, get_adoption_data, remove_adoption
 
 
 class ProposalView(discord.ui.View):
@@ -38,6 +38,48 @@ class ProposalView(discord.ui.View):
         embed = discord.Embed(
             title="💔 Proposal Declined",
             description=f"{self.proposee.mention} has declined {self.proposer.mention}'s proposal. 😢",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Better luck next time!")
+        await interaction.response.edit_message(embed=embed, view=None)
+        self.result = "declined"
+        self.stop()
+
+
+class AdoptionView(discord.ui.View):
+    def __init__(self, adopter: discord.Member, adoptee: discord.Member):
+        super().__init__(timeout=360)
+        self.adopter = adopter
+        self.adoptee = adoptee
+        self.result = None
+
+    @discord.ui.button(label="Accept 👪", style=discord.ButtonStyle.green)
+    async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.adoptee:
+            await interaction.response.send_message("❌ This adoption request is not for you!", ephemeral=True)
+            return
+
+        adopt_user(self.adopter, self.adoptee)
+
+        embed = discord.Embed(
+            title="👪 Adoption Accepted!",
+            description=f"{self.adoptee.mention} has been adopted by {self.adopter.mention}! 🎉",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Congratulations on your new family!")
+        await interaction.response.edit_message(embed=embed, view=None)
+        self.result = "accepted"
+        self.stop()
+
+    @discord.ui.button(label="Decline 💔", style=discord.ButtonStyle.red)
+    async def decline(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.adoptee:
+            await interaction.response.send_message("❌ This adoption request is not for you!", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="💔 Adoption Declined",
+            description=f"{self.adoptee.mention} has declined {self.adopter.mention}'s adoption request. 😢",
             color=discord.Color.red()
         )
         embed.set_footer(text="Better luck next time!")
@@ -98,11 +140,59 @@ class Marry(commands.Cog):
 
         embed = discord.Embed(
             title="💔 Divorce",
-            description=f"{interaction.user.mention} has divorced {partner_id}. 😢",
+            description=f"{interaction.user.mention} has divorced <@{partner_id}>. 😢",
             color=discord.Color.red()
         )
         embed.set_footer(text="We hope you find happiness again.")
 
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="adopt", description="Adopt another user!")
+    @app_commands.describe(user="The user you want to adopt")
+    async def _adopt(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.guild:
+            return await interaction.response.send_message("This is a guild-only command!", ephemeral=True)
+
+        if user.id == interaction.user.id:
+            return await interaction.response.send_message("❌ You can't adopt yourself!", ephemeral=True)
+
+        if user.bot:
+            return await interaction.response.send_message("❌ You can't adopt a bot!", ephemeral=True)
+
+        adoption_data = get_adoption_data(user)
+        if adoption_data:
+            await interaction.response.send_message(f"❌ {user.mention} is already adopted by someone else!", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="👪 Adoption Request",
+            description=f"{interaction.user.mention} wants to adopt {user.mention}! 💕\n\n{user.mention}, do you accept?",
+            color=discord.Color.pink()
+        )
+        embed.set_footer(text="You have 6 minutes to respond.")
+
+        view = AdoptionView(adopter=interaction.user, adoptee=user)
+        await interaction.response.send_message(embed=embed, view=view)
+
+    @app_commands.command(name="runaway", description="Run away from your current adopter.")
+    async def _runaway(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message("This is a guild-only command!", ephemeral=True)
+
+        adoption_data = get_adoption_data(interaction.user)
+        if not adoption_data:
+            await interaction.response.send_message("❌ You are not adopted by anyone!", ephemeral=True)
+            return
+
+        adopter_id = adoption_data["adopter"]
+        remove_adoption(interaction.user)
+
+        embed = discord.Embed(
+            title="🏃 Runaway",
+            description=f"{interaction.user.mention} has run away from their adopter (<@{adopter_id}>). 😢",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="We hope you find happiness again.")
         await interaction.response.send_message(embed=embed)
 
 
