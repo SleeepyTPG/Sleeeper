@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-CHANNEL_ID = [1364860863558844416, 1362441210479775974]
+CHANNEL_IDS = [1364860863558844416, 1362441210479775974]
 
 class OnlineNotifier(commands.Cog):
     def __init__(self, bot):
@@ -9,9 +9,10 @@ class OnlineNotifier(commands.Cog):
 
     async def send_online_message(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(CHANNEL_ID)
-        if channel:
-            await channel.send("The bot is back online 🎉 | <@1104736921474834493>")
+        for channel_id in CHANNEL_IDS:
+            channel = self.bot.get_channel(channel_id)
+            if channel:
+                await channel.send("The bot is back online 🎉 | <@1104736921474834493>")
 
     @commands.Cog.listener()
     async def on_ready(self):
