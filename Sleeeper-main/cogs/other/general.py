@@ -42,7 +42,7 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Next Version Features", value="Better Currency System\n-# (v0.6.1 -> v0.7.0)\nInvite Logger\n-# (v0.7.0)\nBetter Moderation Features\n-# (v0.8.0)\nPolls\n-# (v0.9.0)", inline=False)
+        embed.add_field(name="Next Version Features", value="Invite Logger\n-# (v0.7.0)\nBetter Moderation Features\n-# (v0.8.0)\nPolls\n-# (v0.9.0)\nAutomod Feature\n-# (v1.0.0 RELEASE)", inline=False)
         embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
         embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value=SUPPORT_SERVER, inline=False)
