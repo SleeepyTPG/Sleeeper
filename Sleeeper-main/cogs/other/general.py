@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-BOT_VERSION = "0.7.2 Beta Build"
-NEXT_VERSION = "0.8.0 Beta Build"
+BOT_VERSION = "0.8.0 Beta Build"
+NEXT_VERSION = "0.9.0 Beta Build"
 RELEASE_DATE = "05.07.2025"
 NEXT_VERSION_RELEASE_DATE = "TBA"
 LEAD_DEV = 1104736921474834493

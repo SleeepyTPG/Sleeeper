@@ -20,6 +20,17 @@ def save_balances(balances):
         json.dump(balances, file)
 
 class BlackjackGame(discord.ui.View):
+    CARD_EMOJIS = {
+        "A": "🅰️", "2": "2️⃣", "3": "3️⃣", "4": "4️⃣", "5": "5️⃣", "6": "6️⃣", #Placeholder
+        "7": "7️⃣", "8": "8️⃣", "9": "9️⃣", "10": "🔟", "J": "🇯", "Q": "🇶", "K": "🇰" #Placeholder
+    }
+    CARD_SUITS = ["♠️", "♥️", "♦️", "♣️"] #Placeholders for suits
+
+    CARD_VALUES = {
+        "A": 11, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6,
+        "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10
+    }
+
     def __init__(self, bot, interaction, user_id, bet, update_balance):
         super().__init__()
         self.bot = bot
@@ -27,21 +38,45 @@ class BlackjackGame(discord.ui.View):
         self.user_id = user_id
         self.bet = bet
         self.update_balance = update_balance
-        self.player_hand = [random.randint(1, 11), random.randint(1, 11)]
-        self.dealer_hand = [random.randint(1, 11), random.randint(1, 11)]
+        self.player_hand = [self.draw_card() for _ in range(2)]
+        self.dealer_hand = [self.draw_card() for _ in range(2)]
         self.game_over = False
 
+    def draw_card(self):
+        card = random.choice(list(self.CARD_VALUES.keys()))
+        suit = random.choice(self.CARD_SUITS)
+        return (card, suit)
+
+    def hand_display(self, hand, reveal_all=True):
+        if reveal_all:
+            return " ".join(f"{self.CARD_EMOJIS[card]}{suit}" for card, suit in hand)
+        else:
+            card, suit = hand[0]
+            return f"{self.CARD_EMOJIS[card]}{suit} ❓"
+
     def calculate_score(self, hand):
-        return sum(hand)
+        # Only card values matter for scoring, not suits
+        values = [self.CARD_VALUES[card] for card, _ in hand]
+        score = sum(values)
+        num_aces = sum(1 for card, _ in hand if card == "A")
+        while score > 21 and num_aces:
+            score -= 10
+            num_aces -= 1
+        return score
 
     async def update_message(self):
         player_score = self.calculate_score(self.player_hand)
         dealer_score = self.calculate_score(self.dealer_hand) if self.game_over else None
+        player_hand_str = self.hand_display(self.player_hand)
+        if self.game_over:
+            dealer_hand_str = self.hand_display(self.dealer_hand)
+        else:
+            dealer_hand_str = self.hand_display(self.dealer_hand, reveal_all=False)
         embed = discord.Embed(
             title="🃏 Blackjack",
             description=(
-                f"**Your Hand:** {self.player_hand} (Score: {player_score})\n"
-                f"**Dealer's Hand:** {self.dealer_hand if self.game_over else [self.dealer_hand[0], '??']} (Score: {dealer_score if dealer_score is not None else '??'})"
+                f"**Your Hand:** {player_hand_str} (Score: {player_score})\n"
+                f"**Dealer's Hand:** {dealer_hand_str} (Score: {dealer_score if dealer_score is not None else '??'})"
             ),
             color=discord.Color.blue()
         )
@@ -69,7 +104,7 @@ class BlackjackGame(discord.ui.View):
 
         await interaction.response.defer()
 
-        self.player_hand.append(random.randint(1, 11))
+        self.player_hand.append(self.draw_card())
         if self.calculate_score(self.player_hand) > 21:
             self.game_over = True
         await self.update_message()
@@ -84,7 +119,7 @@ class BlackjackGame(discord.ui.View):
 
         self.game_over = True
         while self.calculate_score(self.dealer_hand) < 17:
-            self.dealer_hand.append(random.randint(1, 11))
+            self.dealer_hand.append(self.draw_card())
         await self.update_message()
 
 class CurrencySystem(commands.Cog):

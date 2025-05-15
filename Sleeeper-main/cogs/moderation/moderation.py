@@ -192,6 +192,26 @@ class Moderation(commands.Cog):
         else:
             return "0000"
 
+    async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.errors.MissingPermissions):
+            perms = ', '.join(error.missing_permissions)
+            await interaction.response.send_message(
+                f"❌ You are missing the following permission(s) to use this command: **{perms}**.",
+                ephemeral=True
+            )
+        elif isinstance(error, app_commands.errors.BotMissingPermissions):
+            perms = ', '.join(error.missing_permissions)
+            await interaction.response.send_message(
+                f"❌ I am missing the following permission(s) to execute this command: **{perms}**.",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ An unexpected error occurred while executing the command.",
+                ephemeral=True
+            )
+            raise error
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))
