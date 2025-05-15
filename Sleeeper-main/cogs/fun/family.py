@@ -104,7 +104,13 @@ class Marry(commands.Cog):
         if user.bot:   
             return await interaction.response.send_message("💔 You can't marry a bot!", ephemeral=True)
         
-        self_married = marry_get_user(interaction.user)
+        member = interaction.user
+        if not isinstance(member, discord.Member):
+            member = interaction.guild.get_member(member.id)
+        if member is None:
+            await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
+            return
+        self_married = marry_get_user(member)
         other_married = marry_get_user(user)
 
         if self_married:
@@ -122,7 +128,13 @@ class Marry(commands.Cog):
         )
         embed.set_footer(text="You have 6 Minutes to respond.")
 
-        view = ProposalView(proposer=interaction.user, proposee=user)
+        proposer_member = interaction.user
+        if not isinstance(proposer_member, discord.Member):
+            proposer_member = interaction.guild.get_member(proposer_member.id)
+        if proposer_member is None:
+            await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
+            return
+        view = ProposalView(proposer=proposer_member, proposee=user)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="divorce", description="Divorce your current partner.")
@@ -130,11 +142,21 @@ class Marry(commands.Cog):
         if not interaction.guild:
             return await interaction.response.send_message("This is a guild only command!", ephemeral=True)
 
-        if not marry_get_user(interaction.user):
+        member = interaction.user
+        if not isinstance(member, discord.Member):
+            member = interaction.guild.get_member(member.id)
+        if member is None:
+            await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
+            return
+        if not marry_get_user(member):
             await interaction.response.send_message("💔 You are not married to anyone!", ephemeral=True)
             return
 
-        result = marry_remove_user(interaction.user)
+        result = marry_remove_user(member)
+
+        if not result:
+            await interaction.response.send_message("❌ Failed to process your divorce. Please try again.", ephemeral=True)
+            return
 
         partner_id = result["member1"] if result["member1"] != interaction.user.id else result["member2"]
 
@@ -171,7 +193,13 @@ class Marry(commands.Cog):
         )
         embed.set_footer(text="You have 6 minutes to respond.")
 
-        view = AdoptionView(adopter=interaction.user, adoptee=user)
+        adopter_member = interaction.user
+        if not isinstance(adopter_member, discord.Member):
+            adopter_member = interaction.guild.get_member(adopter_member.id)
+        if adopter_member is None:
+            await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
+            return
+        view = AdoptionView(adopter=adopter_member, adoptee=user)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="runaway", description="Run away from your current adopter.")
@@ -179,13 +207,20 @@ class Marry(commands.Cog):
         if not interaction.guild:
             return await interaction.response.send_message("This is a guild-only command!", ephemeral=True)
 
-        adoption_data = get_adoption_data(interaction.user)
+        member = interaction.user
+        if not isinstance(member, discord.Member):
+            member = interaction.guild.get_member(member.id)
+        if member is None:
+            await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
+            return
+
+        adoption_data = get_adoption_data(member)
         if not adoption_data:
             await interaction.response.send_message("❌ You are not adopted by anyone!", ephemeral=True)
             return
 
         adopter_id = adoption_data["adopter"]
-        remove_adoption(interaction.user)
+        remove_adoption(member)
 
         embed = discord.Embed(
             title="🏃 Runaway",

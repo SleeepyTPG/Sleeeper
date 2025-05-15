@@ -9,15 +9,25 @@ import string
 
 
 class VerifyView(View):
-    def __init__(self):
+    def __init__(self, bot):
         super().__init__(timeout=None)
+        self.bot = bot
 
     @discord.ui.button(label="Verify", style=discord.ButtonStyle.green, custom_id="verify_button")
     async def verify_button(self, interaction: discord.Interaction, button: Button):
         guild = interaction.guild
         member = interaction.user
+        if guild is None:
+            await interaction.response.send_message(
+                "❌ Guild context is missing. Please try again in a server.",
+                ephemeral=True
+            )
+            return
+        if not isinstance(member, discord.Member):
+            member = await guild.fetch_member(member.id)
 
-        role_id = verify_get_role(guild).get("role")
+        role_data = verify_get_role(guild)
+        role_id = role_data.get("role") if role_data else None
         if not role_id:
             await interaction.response.send_message(
                 "❌ Verification role is not configured. Please contact an administrator.",
@@ -60,6 +70,9 @@ class Verify(commands.Cog):
     @app_commands.command(name="set_verify_role", description="Sets the role to be assigned upon verification.")
     @commands.has_permissions(administrator=True)
     async def _set_verify_role(self, itx: discord.Interaction, role: discord.Role):
+        if itx.guild is None:
+            await itx.response.send_message("❌ This command must be used in a server.", ephemeral=True)
+            return
         verify_set_role(role, itx.guild)
         await itx.response.send_message(f"✅ Verification role has been set to {role.mention}.")
     
@@ -71,9 +84,11 @@ class Verify(commands.Cog):
             description="Click the **Verify** button below to verify yourself and gain access to the server.",
             color=discord.Color.green()
         )
-        embed.set_footer(text="Verification System")
-        await itx.channel.send(embed=embed, view=VerifyView())
-        await itx.response.send_message("Ok, sent 👌", ephemeral=True)
+        if isinstance(itx.channel, (discord.TextChannel, discord.Thread)):
+            await itx.channel.send(embed=embed, view=VerifyView(self.bot))
+            await itx.response.send_message("Ok, sent 👌", ephemeral=True)
+        else:
+            await itx.response.send_message("❌ Cannot send verification message in this type of channel.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

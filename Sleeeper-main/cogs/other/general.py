@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-BOT_VERSION = "0.7.0 Beta Build"
+BOT_VERSION = "0.7.2 Beta Build"
 NEXT_VERSION = "0.8.0 Beta Build"
 RELEASE_DATE = "05.07.2025"
 NEXT_VERSION_RELEASE_DATE = "TBA"
@@ -39,7 +39,8 @@ class General(commands.Cog):
     @app_commands.command(name="version", description="Shows the current version")
     async def version_info(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Version Info", color=discord.Color.blue())
-        embed.add_field(name="Bot Name", value=self.bot.user.name, inline=False)
+        bot_name = self.bot.user.name if self.bot.user is not None else "Unknown"
+        embed.add_field(name="Bot Name", value=bot_name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
         embed.add_field(name="Next Version Features", value="Invite Logger\n-# (v0.7.0)\nBetter Moderation Features\n-# (v0.8.0)\nPolls\n-# (v0.9.0)\nAutomod Feature\n-# (v1.0.0 RELEASE)", inline=False)
@@ -79,6 +80,7 @@ class General(commands.Cog):
         else:
             embed.add_field(
                 name="Im in too many servers lol",
+                value="Cannot display all servers due to Discord limitations.",
                 inline=False
             )
 

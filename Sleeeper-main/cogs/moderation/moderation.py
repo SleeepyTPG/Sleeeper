@@ -38,7 +38,7 @@ class Moderation(commands.Cog):
         try:
             dm_embed = discord.Embed(
                 title="⏳ You Have Been Timed Out",
-                description=f"You have been timed out in **{interaction.guild.name}**.",
+                description=f"You have been timed out in **{interaction.guild.name if interaction.guild else 'this server'}**.",
                 color=discord.Color.red()
             )
             dm_embed.add_field(name="Duration", value=f"{duration} minutes", inline=False)
@@ -58,7 +58,8 @@ class Moderation(commands.Cog):
         )
         channel_embed.add_field(name="Duration", value=f"{duration} minutes", inline=False)
         channel_embed.add_field(name="Reason", value=reason, inline=False)
-        channel_embed.set_footer(text=f"Timed out by {interaction.user}", icon_url=interaction.user.avatar.url)
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
+        channel_embed.set_footer(text=f"Timed out by {interaction.user}", icon_url=avatar_url)
 
         await interaction.response.send_message(embed=channel_embed)
 
@@ -70,32 +71,53 @@ class Moderation(commands.Cog):
         channel = interaction.channel
         guild = interaction.guild
 
-        overwrite = channel.overwrites_for(guild.default_role)
-        overwrite.send_messages = False
-        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+        if guild is None:
+            await interaction.response.send_message(
+                "❌ This command can only be used in a server.",
+                ephemeral=True
+            )
+            return
 
-        await interaction.response.send_message(
-            f"🔒 The channel {channel.mention} has been locked. Members can no longer write here."
-        )
+        if isinstance(channel, discord.TextChannel):
+            overwrite = channel.overwrites_for(guild.default_role)
+            overwrite.send_messages = False
+            await channel.set_permissions(guild.default_role, overwrite=overwrite)
 
-    @app_commands.command(name="unlock_channel", description="Unlocks the current channel so members can write again.")
-    @app_commands.checks.has_permissions(manage_channels=True)
-    async def _unlock_channel(self, interaction: discord.Interaction):
-        channel = interaction.channel
-        guild = interaction.guild
+            channel_display = getattr(channel, "mention", None) or getattr(channel, "name", str(channel))
+            await interaction.response.send_message(
+                f"🔒 The channel {channel_display} has been locked. Members can no longer write here."
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ This command can only be used in a text channel.",
+                ephemeral=True
+            )
 
-        overwrite = channel.overwrites_for(guild.default_role)
-        overwrite.send_messages = True
-        await channel.set_permissions(guild.default_role, overwrite=overwrite)
+        if isinstance(channel, discord.TextChannel):
+            overwrite = channel.overwrites_for(guild.default_role)
+            overwrite.send_messages = True
+            await channel.set_permissions(guild.default_role, overwrite=overwrite)
 
-        await interaction.response.send_message(
-            f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
-        )
+            await interaction.response.send_message(
+                f"🔓 The channel {channel.mention} has been unlocked. Members can write here again."
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ This command can only be used in a text channel.",
+                ephemeral=True
+            )
     
     @app_commands.command(name="warn", description="Warns a user and sends them a DM with the reason.")
     @app_commands.describe(user="The user to warn", reason="The reason for the warning")
     @app_commands.checks.has_permissions(moderate_members=True)
     async def _warn(self, interaction: discord.Interaction, user: discord.Member, reason: str):
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "❌ This command can only be used in a server.",
+                ephemeral=True
+            )
+            return
+
         warning_id = self.get_next_warn_id(interaction.guild)
 
         warns_add_user(user, interaction.guild, reason)
@@ -107,7 +129,8 @@ class Moderation(commands.Cog):
         )
         dm_embed.add_field(name="Reason", value=reason, inline=False)
         dm_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
-        dm_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=interaction.user.avatar.url)
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
+        dm_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=avatar_url)
 
         try:
             await user.send(embed=dm_embed)
@@ -125,28 +148,36 @@ class Moderation(commands.Cog):
         )
         channel_embed.add_field(name="Reason", value=reason, inline=False)
         channel_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
-        channel_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=interaction.user.avatar.url)
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
+        channel_embed.set_footer(text=f"Warned by {interaction.user}", icon_url=avatar_url)
 
         await interaction.response.send_message(embed=channel_embed)
 
         if log_channel_id := warns_get_channel(interaction.guild):
             if log_channel := interaction.guild.get_channel(log_channel_id["channel"]):
-                log_embed = discord.Embed(
-                    title="⚠️ Warning Logged",
-                    description=f"A warning has been issued in **{interaction.guild.name}**.",
-                    color=discord.Color.yellow()
-                )
-                log_embed.add_field(name="Warned User", value=user.mention, inline=False)
-                log_embed.add_field(name="Reason", value=reason, inline=False)
-                log_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
-                log_embed.add_field(name="Moderator", value=interaction.user.mention, inline=False)
-                log_embed.set_footer(text="Warning Log")
-                await log_channel.send(embed=log_embed)
+                if isinstance(log_channel, discord.TextChannel):
+                    log_embed = discord.Embed(
+                        title="⚠️ Warning Logged",
+                        description=f"A warning has been issued in **{interaction.guild.name}**.",
+                        color=discord.Color.yellow()
+                    )
+                    log_embed.add_field(name="Warned User", value=user.mention, inline=False)
+                    log_embed.add_field(name="Reason", value=reason, inline=False)
+                    log_embed.add_field(name="Warning ID", value=f"`{warning_id}`", inline=False)
+                    log_embed.add_field(name="Moderator", value=interaction.user.mention, inline=False)
+                    log_embed.set_footer(text="Warning Log")
+                    await log_channel.send(embed=log_embed)
 
     @app_commands.command(name="set_warn_log", description="Set the channel where warnings will be logged.")
     @app_commands.describe(channel="The channel to log warnings")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_warn_log(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        if interaction.guild is None:
+            await interaction.response.send_message(
+                "❌ This command can only be used in a server.",
+                ephemeral=True
+            )
+            return
         warns_set_channel(channel, interaction.guild)
         await interaction.response.send_message(
             f"✅ Warning log channel has been set to {channel.mention}.",
@@ -156,7 +187,10 @@ class Moderation(commands.Cog):
     def get_next_warn_id(self, guild: discord.Guild) -> str:
         warns_increase_id(guild)
         result = warns_get_id(guild)
-        return f"{result['id']:04d}"
+        if result is not None and 'id' in result:
+            return f"{result['id']:04d}"
+        else:
+            return "0000"
 
 
 async def setup(bot: commands.Bot):

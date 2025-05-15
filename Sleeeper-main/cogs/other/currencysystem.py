@@ -36,12 +36,12 @@ class BlackjackGame(discord.ui.View):
 
     async def update_message(self):
         player_score = self.calculate_score(self.player_hand)
-        dealer_score = self.calculate_score(self.dealer_hand) if self.game_over else "??"
+        dealer_score = self.calculate_score(self.dealer_hand) if self.game_over else None
         embed = discord.Embed(
             title="🃏 Blackjack",
             description=(
                 f"**Your Hand:** {self.player_hand} (Score: {player_score})\n"
-                f"**Dealer's Hand:** {self.dealer_hand if self.game_over else [self.dealer_hand[0], '??']} (Score: {dealer_score})"
+                f"**Dealer's Hand:** {self.dealer_hand if self.game_over else [self.dealer_hand[0], '??']} (Score: {dealer_score if dealer_score is not None else '??'})"
             ),
             color=discord.Color.blue()
         )
@@ -49,10 +49,10 @@ class BlackjackGame(discord.ui.View):
             if player_score > 21:
                 result = "😢 You busted! You lost your bet."
                 self.update_balance(self.user_id, -self.bet)
-            elif dealer_score > 21 or player_score > dealer_score:
+            elif dealer_score is not None and (dealer_score > 21 or player_score > dealer_score):
                 result = f"🎉 You won! You earned **{self.bet} Sleeeper Coins**."
                 self.update_balance(self.user_id, self.bet * 2)
-            elif player_score < dealer_score:
+            elif dealer_score is not None and player_score < dealer_score:
                 result = "😢 You lost! The dealer wins."
                 self.update_balance(self.user_id, -self.bet)
             else:
@@ -62,7 +62,7 @@ class BlackjackGame(discord.ui.View):
         await self.interaction.edit_original_response(embed=embed, view=self)
 
     @discord.ui.button(label="Hit", style=discord.ButtonStyle.green)
-    async def hit(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def hit(self, interaction: discord.Interaction, _: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("This is not your game!", ephemeral=True)
             return
@@ -75,7 +75,7 @@ class BlackjackGame(discord.ui.View):
         await self.update_message()
 
     @discord.ui.button(label="Stand", style=discord.ButtonStyle.red)
-    async def stand(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def stand(self, interaction: discord.Interaction, _: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("This is not your game!", ephemeral=True)
             return
@@ -94,22 +94,29 @@ class CurrencySystem(commands.Cog):
         self.work_cooldowns = {}
 
     def get_balance(self, guild_id: int, user_id: int):
-        guild_id = str(guild_id)
-        user_id = str(user_id)
-        return self.balances.get(guild_id, {}).get(user_id, 0)
+        return self.balances.get(str(guild_id), {}).get(str(user_id), 0)
 
     def update_balance(self, guild_id: int, user_id: int, amount: int):
-        guild_id = str(guild_id)
-        user_id = str(user_id)
-        if guild_id not in self.balances:
-            self.balances[guild_id] = {}
-        if user_id not in self.balances[guild_id]:
-            self.balances[guild_id][user_id] = 0
-        self.balances[guild_id][user_id] += amount
+        guild_id_str = str(guild_id)
+        user_id_str = str(user_id)
+        if guild_id_str not in self.balances:
+            self.balances[guild_id_str] = {}
+        if user_id_str not in self.balances[guild_id_str]:
+            self.balances[guild_id_str][user_id_str] = 0
+        self.balances[guild_id_str][user_id_str] += amount
         save_balances(self.balances)
 
     @app_commands.command(name="balance", description="Check your Sleeeper Coins balance.")
     async def balance(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        guild_id = interaction.guild.id
+        
+        user_id = interaction.user.id
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         guild_id = interaction.guild.id
         user_id = interaction.user.id
         balance = self.get_balance(guild_id, user_id)
@@ -120,115 +127,12 @@ class CurrencySystem(commands.Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="work", description="Play a mini-game to earn Sleeeper Coins.")
-    async def work(self, interaction: discord.Interaction):
-        guild_id = interaction.guild.id
-        user_id = interaction.user.id
-        current_time = time.time()
-        cooldown_time = 2 * 60 * 60
-
-        if user_id in self.work_cooldowns:
-            last_used = self.work_cooldowns[user_id]
-            time_remaining = cooldown_time - (current_time - last_used)
-            if time_remaining > 0:
-                minutes, seconds = divmod(int(time_remaining), 60)
-                hours, minutes = divmod(minutes, 60)
-                await interaction.response.send_message(
-                    f"⏳ You need to wait **{hours}h {minutes}m {seconds}s** before using `/work` again.",
-                    ephemeral=True
-                )
-                return
-
-        mini_game = random.choice(["math", "trivia"])
-
-        if mini_game == "math":
-            num1 = random.randint(1, 10)
-            num2 = random.randint(1, 10)
-            correct_answer = num1 + num2
-
-            await interaction.response.send_message(
-                f"🧮 Solve this math problem to earn coins: **{num1} + {num2} = ?**",
-                ephemeral=True
-            )
-
-            def check(msg):
-                return msg.author.id == user_id and msg.channel == interaction.channel
-
-            try:
-                msg = await self.bot.wait_for("message", check=check, timeout=30.0)
-                if int(msg.content) == correct_answer:
-                    earnings = random.randint(50, 200)
-                    self.update_balance(guild_id, user_id, earnings)
-                    self.work_cooldowns[user_id] = current_time
-                    await interaction.followup.send(
-                        f"✅ Correct! You earned **{earnings} Sleeeper Coins**.",
-                        ephemeral=True
-                    )
-                else:
-                    await interaction.followup.send("❌ Incorrect answer. Better luck next time!", ephemeral=True)
-            except asyncio.TimeoutError:
-                await interaction.followup.send("❌ Time's up! You didn't answer in time.", ephemeral=True)
-
-        elif mini_game == "trivia":
-            trivia_questions = [
-                {"question": "What is the capital of France?", "answer": "paris"},
-                {"question": "What is 5 x 6?", "answer": "30"},
-                {"question": "Who wrote 'To Kill a Mockingbird'?", "answer": "harper lee"},
-            ]
-            trivia = random.choice(trivia_questions)
-
-            await interaction.response.send_message(
-                f"❓ Answer this trivia question to earn coins: **{trivia['question']}**",
-                ephemeral=True
-            )
-
-            def check(msg):
-                return msg.author.id == user_id and msg.channel == interaction.channel
-
-            try:
-                msg = await self.bot.wait_for("message", check=check, timeout=30.0)
-                if msg.content.lower() == trivia["answer"]:
-                    earnings = random.randint(50, 200)
-                    self.update_balance(guild_id, user_id, earnings)
-                    self.work_cooldowns[user_id] = current_time
-                    await interaction.followup.send(
-                        f"✅ Correct! You earned **{earnings} Sleeeper Coins**.",
-                        ephemeral=True
-                    )
-                else:
-                    await interaction.followup.send("❌ Incorrect answer. Better luck next time!", ephemeral=True)
-            except asyncio.TimeoutError:
-                await interaction.followup.send("❌ Time's up! You didn't answer in time.", ephemeral=True)
-
-    @app_commands.command(name="blackjack", description="Play Blackjack to gamble your Sleeeper Coins.")
-    @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
-    async def blackjack(self, interaction: discord.Interaction, amount: int):
-        guild_id = interaction.guild.id
-        user_id = interaction.user.id
-
-        if amount <= 0:
-            await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
-            return
-
-        balance = self.get_balance(guild_id, user_id)
-        if amount > balance:
-            await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
-            return
-
-        view = BlackjackGame(self.bot, interaction, user_id, amount, lambda uid, amt: self.update_balance(guild_id, uid, amt))
-        embed = discord.Embed(
-            title="🃏 Blackjack",
-            description=(
-                f"**Your Hand:** {view.player_hand} (Score: {sum(view.player_hand)})\n"
-                f"**Dealer's Hand:** [{view.dealer_hand[0]}, '??'] (Score: ??)"
-            ),
-            color=discord.Color.blue()
-        )
-        await interaction.response.send_message(embed=embed, view=view)
-
     @app_commands.command(name="doubleornothing", description="Play Double or Nothing to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.")
     async def double_or_nothing(self, interaction: discord.Interaction, amount: int):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         guild_id = interaction.guild.id
         user_id = interaction.user.id
 
@@ -262,7 +166,11 @@ class CurrencySystem(commands.Cog):
     @app_commands.command(name="roulette", description="Play Roulette to gamble your Sleeeper Coins.")
     @app_commands.describe(amount="The amount of Sleeeper Coins to gamble.", color="Choose red or black.")
     async def roulette(self, interaction: discord.Interaction, amount: int, color: str):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         guild_id = interaction.guild.id
+        
         user_id = interaction.user.id
 
         if amount <= 0:

@@ -5,7 +5,7 @@ from utils import level_set_channel, level_add_xp, level_get, level_get_channel,
 
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self, bot: app_commands, leaderboard, interaction: discord.Interaction):
+    def __init__(self, bot: commands.Bot, leaderboard, interaction: discord.Interaction):
         super().__init__()
         self.bot = bot
         self.leaderboard = leaderboard
@@ -70,7 +70,19 @@ class LevelSystem(commands.Cog):
         if message.author.bot:
             return
 
-        leveled_up, new_level = level_add_xp(message.author, message.guild, 10)
+        member = message.author
+        if not isinstance(member, discord.Member):
+            if message.guild is not None:
+                member = message.guild.get_member(message.author.id)
+                if member is None:
+                    return
+            else:
+                return
+
+        if message.guild is None:
+            return
+
+        leveled_up, new_level = level_add_xp(member, message.guild, 10)
 
         if leveled_up:
             embed = discord.Embed(
@@ -83,16 +95,28 @@ class LevelSystem(commands.Cog):
             level_channel_id = level_get_channel(message.guild)
             if level_channel_id:
                 level_channel = self.bot.get_channel(level_channel_id["channel"])
-                if level_channel:
+                if isinstance(level_channel, discord.TextChannel):
                     return await level_channel.send(embed=embed)
 
             await message.channel.send(embed=embed)
 
     @app_commands.command(name="rank", description="Check your current level and XP.")
     async def _rank(self, interaction: discord.Interaction):
-        user_data = level_get(interaction.user, interaction.guild)
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+
+        member = interaction.guild.get_member(interaction.user.id)
+        if member is None:
+            await interaction.response.send_message("Could not find your member data in this server.", ephemeral=True)
+            return
+
+        user_data = level_get(member, interaction.guild)
+        if user_data is None:
+            await interaction.response.send_message("No level data found for you in this server.", ephemeral=True)
+            return
         embed = discord.Embed(
-            title=f"📊 {interaction.user.display_name}'s Rank",
+            title=f"📊 {member.display_name}'s Rank",
             description=f"**Level:** {user_data['level']}\n**XP:** {user_data['xp']}/{user_data['level'] * 100}",
             color=discord.Color.blue()
         )
@@ -101,6 +125,9 @@ class LevelSystem(commands.Cog):
 
     @app_commands.command(name="leaderboard", description="Show the server's top users by level.")
     async def _leaderboard(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         levels = level_get_all(interaction.guild)
         if levels is None:
             await interaction.response.send_message("No data available for this server.", ephemeral=True)
@@ -126,6 +153,9 @@ class LevelSystem(commands.Cog):
     @app_commands.describe(channel="The channel to send level-up messages")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_level_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
         level_set_channel(channel, interaction.guild)
         await interaction.response.send_message(f"✅ Level-up messages will now be sent in {channel.mention}.")
 
