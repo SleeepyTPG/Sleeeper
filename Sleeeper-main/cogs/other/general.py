@@ -63,6 +63,11 @@ class General(commands.Cog):
 
     @app_commands.command(name="servers", description="Shows the list of servers the bot is in.")
     async def servers(self, interaction: discord.Interaction):
+        ALLOWED_USERS = {LEAD_DEV, HELPER}
+        if interaction.user.id not in ALLOWED_USERS:
+            await interaction.response.send_message("❌ You do not have permission to use this command.", ephemeral=True)
+            return
+
         guilds = self.bot.guilds
         embed = discord.Embed(
             title="📜 Servers List",
