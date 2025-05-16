@@ -5,7 +5,7 @@ from discord import app_commands
 BOT_VERSION = "0.8.0 Beta Build"
 NEXT_VERSION = "0.9.0 Beta Build"
 RELEASE_DATE = "24.05.2025"
-NEXT_VERSION_RELEASE_DATE = "TBA"
+NEXT_VERSION_RELEASE_DATE = "17.05.2025"
 LEAD_DEV = 1104736921474834493
 HELPER = 1296122732173590651
 SUPPORT_SERVER = "https://discord.gg/WwApdk4z4H"
@@ -43,7 +43,7 @@ class General(commands.Cog):
         embed.add_field(name="Bot Name", value=bot_name, inline=False)
         embed.add_field(name="Version", value=BOT_VERSION, inline=False)
         embed.add_field(name="Next Version", value=NEXT_VERSION, inline=False)
-        embed.add_field(name="Next Version Features", value="Invite Logger\n-# (v0.7.0)\nBetter Moderation Features\n-# (v0.8.0)\nPolls\n-# (v0.9.0)\nAutomod Feature\n-# (v1.0.0 RELEASE)", inline=False)
+        embed.add_field(name="Next Version Features", value="Better Moderation Features\n-# (v0.8.0)\nPolls\n-# (v0.9.0)\nAutomod Feature\n-# (v1.0.0 RELEASE)", inline=False)
         embed.add_field(name="Next Version Release Date", value=NEXT_VERSION_RELEASE_DATE, inline=False)
         embed.add_field(name="Release Date", value=RELEASE_DATE, inline=False)
         embed.add_field(name="Support Server", value=SUPPORT_SERVER, inline=False)
