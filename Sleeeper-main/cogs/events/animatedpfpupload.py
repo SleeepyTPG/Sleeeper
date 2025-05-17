@@ -10,23 +10,24 @@ class AnimatedPFP(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="setgifpfp", description="Upload a GIF to set as the bot's profile picture.")
-    @app_commands.describe(gif="Attach a GIF file for the bot's profile picture.")
-    async def setgifpfp(self, interaction: discord.Interaction, gif: discord.Attachment):
+    @app_commands.command(name="setpfp", description="Upload a GIF, PNG, or JPG to set as the bot's profile picture.")
+    @app_commands.describe(image="Attach a GIF, PNG, or JPG file for the bot's profile picture.")
+    async def setpfp(self, interaction: discord.Interaction, image: discord.Attachment):
         if interaction.user.id not in ALLOWED_USERS:
             await interaction.response.send_message("❌ You do not have permission to use this command.", ephemeral=True)
             return
 
-        if not gif.filename.lower().endswith(".gif"):
-            await interaction.response.send_message("❌ Please upload a valid GIF file.", ephemeral=True)
+        valid_extensions = (".gif", ".png", ".jpg", ".jpeg")
+        if not image.filename.lower().endswith(valid_extensions):
+            await interaction.response.send_message("❌ Please upload a valid GIF, PNG, or JPG file.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(gif.url) as resp:
+                async with session.get(image.url) as resp:
                     if resp.status != 200:
-                        await interaction.followup.send("❌ Failed to download the GIF.", ephemeral=True)
+                        await interaction.followup.send("❌ Failed to download the image.", ephemeral=True)
                         return
                     data = await resp.read()
             await self.bot.user.edit(avatar=data)
