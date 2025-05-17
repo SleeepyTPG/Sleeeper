@@ -18,21 +18,25 @@ class ErrorLogger(commands.Cog):
         guild = self.bot.get_guild(ERROR_GUILD_ID)
         guild_info = f"**Server:** {guild.name} (ID: {guild.id})\n**Members:** {guild.member_count}" if guild else "Server info not found."
         tb_list = traceback.extract_tb(sys.exc_info()[2])
-        tb_list = traceback.extract_tb(sys.exc_info()[2])
         if tb_list:
             last_frame = tb_list[-1]
             file_info = f"**File:** `{last_frame.filename}`\n**Line:** `{last_frame.lineno}`\n**Function:** `{last_frame.name}`"
         else:
             file_info = "File info not found."
 
-        if channel:
+        if channel is not None:
             tb_short = tb[-1900:] if len(tb) > 1900 else tb
             embed = discord.Embed(
                 title="⚠️ Bot Error",
                 description=f"{guild_info}\n{file_info}\n\n**Event:** `{event_method}`\n```py\n{tb_short}\n```",
                 color=discord.Color.red()
             )
-            await channel.send(content=f"<@&{ERROR_ROLE_ID}>", embed=embed)
+            try:
+                await channel.send(content=f"<@&{ERROR_ROLE_ID}>", embed=embed)
+            except Exception as e:
+                print("Failed to send error embed:", e)
+        else:
+            print("Error channel not found! Check ERROR_CHANNEL_ID and bot permissions.")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -48,14 +52,19 @@ class ErrorLogger(commands.Cog):
         else:
             file_info = "File info not found."
 
-        if channel:
+        if channel is not None:
             tb_short = tb[-1900:] if len(tb) > 1900 else tb
             embed = discord.Embed(
                 title="⚠️ Command Error",
                 description=f"{guild_info}\n{file_info}\n\n**Command:** `{ctx.command}`\n```py\n{tb_short}\n```",
                 color=discord.Color.red()
             )
-            await channel.send(content=f"<@&{ERROR_ROLE_ID}>", embed=embed)
+            try:
+                await channel.send(content=f"<@&{ERROR_ROLE_ID}>", embed=embed)
+            except Exception as e:
+                print("Failed to send command error embed:", e)
+        else:
+            print("Error channel not found! Check ERROR_CHANNEL_ID and bot permissions.")
 
 async def setup(bot):
     await bot.add_cog(ErrorLogger(bot))
