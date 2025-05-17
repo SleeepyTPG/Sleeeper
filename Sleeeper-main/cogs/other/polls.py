@@ -2,15 +2,17 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import typing
+import asyncio
 
 class PollView(discord.ui.View):
-    def __init__(self, options, show_status: bool, embed: discord.Embed, interaction: discord.Interaction):
-        super().__init__(timeout=300)
+    def __init__(self, options, show_status: bool, embed: discord.Embed, interaction: discord.Interaction, poll_duration: int):
+        super().__init__(timeout=poll_duration)
         self.votes = {option: set() for option in options}
         self.options = options
         self.show_status = show_status
         self.embed = embed
         self.interaction = interaction
+        self.poll_duration = poll_duration
 
         for idx, option in enumerate(options):
             self.add_item(PollButton(option, idx, show_status))
@@ -38,6 +40,21 @@ class PollView(discord.ui.View):
             else:
                 value = "Voting is anonymous."
             self.embed.add_field(name=f"Option {idx}: {option}", value=value, inline=False)
+        await self.interaction.edit_original_response(embed=self.embed, view=self)
+
+    async def on_timeout(self):
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+        self.embed.clear_fields()
+        results = self.get_results()
+        for idx, (option, count, bar) in enumerate(results, 1):
+            if self.show_status:
+                value = f"Final votes: {count}\n{bar}"
+            else:
+                value = f"Final votes: {count}"
+            self.embed.add_field(name=f"Option {idx}: {option}", value=value, inline=False)
+        self.embed.set_footer(text="Poll ended.")
         await self.interaction.edit_original_response(embed=self.embed, view=self)
 
 class PollButton(discord.ui.Button):
@@ -69,7 +86,7 @@ class Polls(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="poll", description="Create an interactive poll with up to 5 options.")
+    @app_commands.command(name="poll", description="Create an interactive poll with up to 5 options and a timer.")
     @app_commands.describe(
         question="The poll question",
         option1="First option",
@@ -78,7 +95,8 @@ class Polls(commands.Cog):
         option4="Fourth option",
         option5="Fifth option",
         status_bar="Show a status bar for votes? (yes/no)",
-        anonymous="Make the poll anonymous? (yes/no)"
+        anonymous="Make the poll anonymous? (yes/no)",
+        duration="How long should the poll last? (seconds, e.g. 60 = 1 minute)"
     )
     async def poll(
         self,
@@ -90,7 +108,8 @@ class Polls(commands.Cog):
         option4: typing.Optional[str] = None,
         option5: typing.Optional[str] = None,
         status_bar: typing.Optional[str] = "yes",
-        anonymous: typing.Optional[str] = "no"
+        anonymous: typing.Optional[str] = "no",
+        duration: typing.Optional[int] = 60
     ):
         options = [option1, option2]
         if option3: options.append(option3)
@@ -103,6 +122,9 @@ class Polls(commands.Cog):
         if len(options) > 5:
             await interaction.response.send_message("You can provide up to five options.", ephemeral=True)
             return
+        if duration is None or duration < 10 or duration > 86400:
+            await interaction.response.send_message("Please provide a duration between 10 and 86400 seconds (24 hours).", ephemeral=True)
+            return
 
         status_bar_value = status_bar.lower() if status_bar is not None else "yes"
         anonymous_value = anonymous.lower() if anonymous is not None else "no"
@@ -110,7 +132,7 @@ class Polls(commands.Cog):
 
         embed = discord.Embed(
             title="📊 Poll",
-            description=question,
+            description=f"{question}\n\n⏳ This poll will end in {duration} seconds.",
             color=discord.Color.blurple()
         )
         for idx, opt in enumerate(options, 1):
@@ -124,7 +146,7 @@ class Polls(commands.Cog):
         elif show_status:
             embed.set_footer(text="Votes are shown live with a status bar.")
 
-        view = PollView(options, show_status, embed, interaction)
+        view = PollView(options, show_status, embed, interaction, poll_duration=duration)
         await interaction.response.send_message(embed=embed, view=view)
 
 async def setup(bot):
