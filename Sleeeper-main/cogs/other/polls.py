@@ -4,11 +4,13 @@ from discord import app_commands
 import typing
 
 class PollView(discord.ui.View):
-    def __init__(self, options, show_status: bool):
+    def __init__(self, options, show_status: bool, embed: discord.Embed, interaction: discord.Interaction):
         super().__init__(timeout=300)
         self.votes = {option: set() for option in options}
         self.options = options
         self.show_status = show_status
+        self.embed = embed
+        self.interaction = interaction
 
         for idx, option in enumerate(options):
             self.add_item(PollButton(option, idx, show_status))
@@ -19,14 +21,24 @@ class PollView(discord.ui.View):
         for option in self.options:
             count = len(self.votes[option])
             if self.show_status:
-                # Status bar: 10 blocks max
                 percent = (count / total_votes) if total_votes > 0 else 0
                 blocks = int(percent * 10)
                 bar = "█" * blocks + "░" * (10 - blocks)
-                results.append(f"**{option}**: {count} vote{'s' if count != 1 else ''} {bar}")
+                results.append((option, count, bar))
             else:
-                results.append(f"**{option}**: Voting is anonymous.")
-        return "\n".join(results)
+                results.append((option, count, None))
+        return results
+
+    async def update_embed(self):
+        self.embed.clear_fields()
+        results = self.get_results()
+        for idx, (option, count, bar) in enumerate(results, 1):
+            if self.show_status:
+                value = f"Votes: {count}\n{bar}"
+            else:
+                value = "Voting is anonymous."
+            self.embed.add_field(name=f"Option {idx}: {option}", value=value, inline=False)
+        await self.interaction.edit_original_response(embed=self.embed, view=self)
 
 class PollButton(discord.ui.Button):
     def __init__(self, option, idx, show_status):
@@ -43,9 +55,10 @@ class PollButton(discord.ui.Button):
         view.votes[self.label].add(interaction.user.id)
         if self.show_status:
             await interaction.response.send_message(
-                f"You voted for **{self.label}**!\n\nCurrent results:\n{view.get_results()}",
+                f"You voted for **{self.label}**!\n\nCurrent results are shown in the poll embed.",
                 ephemeral=True
             )
+            await view.update_embed()
         else:
             await interaction.response.send_message(
                 f"You voted for **{self.label}**! This is an anonymous poll.",
@@ -101,13 +114,17 @@ class Polls(commands.Cog):
             color=discord.Color.blurple()
         )
         for idx, opt in enumerate(options, 1):
-            embed.add_field(name=f"Option {idx}", value=opt, inline=False)
+            if show_status:
+                value = "Votes: 0\n" + "░" * 10
+            else:
+                value = "Voting is anonymous."
+            embed.add_field(name=f"Option {idx}: {opt}", value=value, inline=False)
         if anonymous_value == "yes":
             embed.set_footer(text="This is an anonymous poll. Results will not be shown until the poll ends.")
         elif show_status:
             embed.set_footer(text="Votes are shown live with a status bar.")
 
-        view = PollView(options, show_status)
+        view = PollView(options, show_status, embed, interaction)
         await interaction.response.send_message(embed=embed, view=view)
 
 async def setup(bot):
