@@ -57,13 +57,28 @@ class Application(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def application(self, interaction: discord.Interaction):
+    @app_commands.command(name="sendapplication", description="Send the application embed to start the application process.")
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def send_application(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+
+        channel = self.bot.get_channel(APPLICATION_CHANNEL_ID)
+        if channel is None:
+            await interaction.response.send_message("Application channel not found.", ephemeral=True)
+            return
+
+        await self.sendapplication(interaction)
+
+    async def sendapplication(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="Apply Here!",
             description="Press the button below to start your application via DM.",
             color=discord.Color.blurple()
         )
-        await interaction.response.send_message(embed=embed, view=ApplicationButton(self.bot), ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=ApplicationButton(self.bot))
+
 
 async def setup(bot):
     await bot.add_cog(Application(bot))
