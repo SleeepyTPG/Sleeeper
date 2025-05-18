@@ -3,6 +3,7 @@ import glob
 import discord
 from discord.ext import commands
 import logging
+import aiomysql
 
 logger = logging.getLogger(__name__)
 
@@ -33,3 +34,11 @@ class Bot(commands.Bot):
         files = [file.replace(os.path.sep, ".") for file in files]
 
         return files
+
+
+    async def get_mysql_pool(self):
+        if not hasattr(self, "mysql_pool"):
+            self.mysql_pool = await aiomysql.create_pool(
+                host="db0.fps.ms:3306", port=3306, user="u61176_eKPaZTch0u", password="G34z!nAU=CO61bIrlOY9IxAY", db="s61176_sleeeper", autocommit=True
+            )
+        return self.mysql_pool

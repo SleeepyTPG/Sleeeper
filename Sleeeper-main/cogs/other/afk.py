@@ -43,6 +43,8 @@ class AFK(commands.Cog):
                 afk_removed_embed.set_footer(text="Glad to have you back!")
                 await message.channel.send(embed=afk_removed_embed, delete_after=10)
 
+    @app_commands.command(name="afk", description="Set your AFK status with an optional reason.")
+    @app_commands.describe(reason="The reason why you are AFK.")
     async def afk(self, interaction: discord.Interaction, reason: str = "No reason provided"):
         if not interaction.guild:
             return await interaction.response.send_message("This is a guild only command.", ephemeral=True)
@@ -63,8 +65,6 @@ class AFK(commands.Cog):
         )
         afk_embed.add_field(name="Reason", value=reason, inline=False)
         afk_embed.set_footer(text="You will be notified when someone mentions you.")
-
-        await interaction.response.send_message(embed=afk_embed)
 
         await interaction.response.send_message(embed=afk_embed)
 

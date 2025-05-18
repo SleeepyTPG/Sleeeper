@@ -3,21 +3,45 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
-import json
-import os
-import time
+import aiomysql
 
-CURRENCY_FILE = "currency.json"
+CURRENCY_TABLE = "currency"
 
-def load_balances():
-    if os.path.exists(CURRENCY_FILE):
-        with open(CURRENCY_FILE, "r") as file:
-            return json.load(file)
-    return {}
+async def ensure_currency_table(bot):
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {CURRENCY_TABLE} (
+                    guild_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    balance BIGINT NOT NULL DEFAULT 0,
+                    PRIMARY KEY (guild_id, user_id)
+                )
+            """)
 
-def save_balances(balances):
-    with open(CURRENCY_FILE, "w") as file:
-        json.dump(balances, file)
+async def get_balance(bot, guild_id: int, user_id: int):
+    await ensure_currency_table(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT balance FROM {CURRENCY_TABLE} WHERE guild_id=%s AND user_id=%s",
+                (guild_id, user_id)
+            )
+            row = await cur.fetchone()
+            return row["balance"] if row else 0
+
+async def update_balance(bot, guild_id: int, user_id: int, amount: int):
+    await ensure_currency_table(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO {CURRENCY_TABLE} (guild_id, user_id, balance) VALUES (%s, %s, %s) "
+                f"ON DUPLICATE KEY UPDATE balance = balance + VALUES(balance)",
+                (guild_id, user_id, amount)
+            )
 
 class BlackjackGame(discord.ui.View):
     CARD_EMOJIS = {
@@ -31,13 +55,12 @@ class BlackjackGame(discord.ui.View):
         "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10
     }
 
-    def __init__(self, bot, interaction, user_id, bet, update_balance):
+    def __init__(self, bot, interaction, user_id, bet):
         super().__init__()
         self.bot = bot
         self.interaction = interaction
         self.user_id = user_id
         self.bet = bet
-        self.update_balance = update_balance
         self.player_hand = [self.draw_card() for _ in range(2)]
         self.dealer_hand = [self.draw_card() for _ in range(2)]
         self.game_over = False
@@ -55,7 +78,6 @@ class BlackjackGame(discord.ui.View):
             return f"{self.CARD_EMOJIS[card]}{suit} ❓"
 
     def calculate_score(self, hand):
-        # Only card values matter for scoring, not suits
         values = [self.CARD_VALUES[card] for card, _ in hand]
         score = sum(values)
         num_aces = sum(1 for card, _ in hand if card == "A")
@@ -83,17 +105,17 @@ class BlackjackGame(discord.ui.View):
         if self.game_over:
             if player_score > 21:
                 result = "😢 You busted! You lost your bet."
-                self.update_balance(self.user_id, -self.bet)
+                await update_balance(self.bot, self.interaction.guild.id, self.user_id, -self.bet)
             elif dealer_score is not None and (dealer_score > 21 or player_score > dealer_score):
                 result = f"🎉 You won! You earned **{self.bet} Sleeeper Coins**."
-                self.update_balance(self.user_id, self.bet * 2)
+                await update_balance(self.bot, self.interaction.guild.id, self.user_id, self.bet * 2)
             elif dealer_score is not None and player_score < dealer_score:
                 result = "😢 You lost! The dealer wins."
-                self.update_balance(self.user_id, -self.bet)
+                await update_balance(self.bot, self.interaction.guild.id, self.user_id, -self.bet)
             else:
                 result = "🤝 It's a tie! No coins were lost or gained."
             embed.add_field(name="Result", value=result, inline=False)
-            self.clear_items()  # Remove buttons when the game is over
+            self.clear_items()
         await self.interaction.edit_original_response(embed=embed, view=self)
 
     @discord.ui.button(label="Hit", style=discord.ButtonStyle.green)
@@ -125,21 +147,13 @@ class BlackjackGame(discord.ui.View):
 class CurrencySystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.balances = load_balances()
         self.work_cooldowns = {}
 
-    def get_balance(self, guild_id: int, user_id: int):
-        return self.balances.get(str(guild_id), {}).get(str(user_id), 0)
+    async def get_balance(self, guild_id: int, user_id: int):
+        return await get_balance(self.bot, guild_id, user_id)
 
-    def update_balance(self, guild_id: int, user_id: int, amount: int):
-        guild_id_str = str(guild_id)
-        user_id_str = str(user_id)
-        if guild_id_str not in self.balances:
-            self.balances[guild_id_str] = {}
-        if user_id_str not in self.balances[guild_id_str]:
-            self.balances[guild_id_str][user_id_str] = 0
-        self.balances[guild_id_str][user_id_str] += amount
-        save_balances(self.balances)
+    async def update_balance(self, guild_id: int, user_id: int, amount: int):
+        await update_balance(self.bot, guild_id, user_id, amount)
 
     @app_commands.command(name="balance", description="Check your Sleeeper Coins balance.")
     async def balance(self, interaction: discord.Interaction):
@@ -147,14 +161,8 @@ class CurrencySystem(commands.Cog):
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
         guild_id = interaction.guild.id
-        
         user_id = interaction.user.id
-        if interaction.guild is None:
-            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
-            return
-        guild_id = interaction.guild.id
-        user_id = interaction.user.id
-        balance = self.get_balance(guild_id, user_id)
+        balance = await self.get_balance(guild_id, user_id)
         embed = discord.Embed(
             title="💰 Sleeeper Coins Balance",
             description=f"{interaction.user.mention}, you have **{balance} Sleeeper Coins** in this server.",
@@ -175,7 +183,7 @@ class CurrencySystem(commands.Cog):
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
-        balance = self.get_balance(guild_id, user_id)
+        balance = await self.get_balance(guild_id, user_id)
         if amount > balance:
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
@@ -183,14 +191,14 @@ class CurrencySystem(commands.Cog):
         outcome = random.choice(["win", "lose"])
         if outcome == "win":
             winnings = amount * 2
-            self.update_balance(guild_id, user_id, winnings)
+            await self.update_balance(guild_id, user_id, winnings)
             embed = discord.Embed(
                 title="🎲 Double or Nothing Result",
                 description=f"🎉 You won! You doubled your bet and earned **{winnings} Sleeeper Coins**!",
                 color=discord.Color.green()
             )
         else:
-            self.update_balance(guild_id, user_id, -amount)
+            await self.update_balance(guild_id, user_id, -amount)
             embed = discord.Embed(
                 title="🎲 Double or Nothing Result",
                 description=f"😢 You lost! You lost **{amount} Sleeeper Coins**.",
@@ -205,14 +213,13 @@ class CurrencySystem(commands.Cog):
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
         guild_id = interaction.guild.id
-        
         user_id = interaction.user.id
 
         if amount <= 0:
             await interaction.response.send_message("❌ You must gamble a positive amount.", ephemeral=True)
             return
 
-        balance = self.get_balance(guild_id, user_id)
+        balance = await self.get_balance(guild_id, user_id)
         if amount > balance:
             await interaction.response.send_message("❌ You don't have enough Sleeeper Coins to gamble that amount.", ephemeral=True)
             return
@@ -224,14 +231,14 @@ class CurrencySystem(commands.Cog):
         winning_color = random.choice(["red", "black"])
         if color.lower() == winning_color:
             winnings = amount * 2
-            self.update_balance(guild_id, user_id, winnings)
+            await self.update_balance(guild_id, user_id, winnings)
             embed = discord.Embed(
                 title="🎡 Roulette Result",
                 description=f"🎉 You won! The ball landed on **{winning_color}**.\nYou earned **{winnings} Sleeeper Coins**!",
                 color=discord.Color.green()
             )
         else:
-            self.update_balance(guild_id, user_id, -amount)
+            await self.update_balance(guild_id, user_id, -amount)
             embed = discord.Embed(
                 title="🎡 Roulette Result",
                 description=f"😢 You lost! The ball landed on **{winning_color}**.\nYou lost **{amount} Sleeeper Coins**.",

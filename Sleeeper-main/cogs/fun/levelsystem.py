@@ -1,8 +1,110 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import level_set_channel, level_add_xp, level_get, level_get_channel, level_get_all
+import aiomysql
 
+LEVEL_TABLE = "levels"
+LEVEL_CHANNELS_TABLE = "level_channels"
+
+async def ensure_tables_exist(bot):
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {LEVEL_TABLE} (
+                    user_id BIGINT NOT NULL,
+                    guild_id BIGINT NOT NULL,
+                    xp INT NOT NULL DEFAULT 0,
+                    level INT NOT NULL DEFAULT 1,
+                    PRIMARY KEY (user_id, guild_id)
+                )
+            """)
+            await cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {LEVEL_CHANNELS_TABLE} (
+                    guild_id BIGINT PRIMARY KEY,
+                    channel BIGINT NOT NULL
+                )
+            """)
+
+async def level_add_xp(bot, member: discord.Member, guild: discord.Guild, xp: int):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {LEVEL_TABLE} WHERE user_id=%s AND guild_id=%s",
+                (member.id, guild.id)
+            )
+            row = await cur.fetchone()
+            if row:
+                new_xp = row["xp"] + xp
+                new_level = row["level"]
+                leveled_up = False
+                if new_xp >= new_level * 100:
+                    new_xp -= new_level * 100
+                    new_level += 1
+                    leveled_up = True
+                await cur.execute(
+                    f"UPDATE {LEVEL_TABLE} SET xp=%s, level=%s WHERE user_id=%s AND guild_id=%s",
+                    (new_xp, new_level, member.id, guild.id)
+                )
+                return leveled_up, new_level
+            else:
+                await cur.execute(
+                    f"INSERT INTO {LEVEL_TABLE} (user_id, guild_id, xp, level) VALUES (%s, %s, %s, %s)",
+                    (member.id, guild.id, xp, 1)
+                )
+                return False, 1
+
+def make_level_embed(member, user_data):
+    return discord.Embed(
+        title=f"📊 {member.display_name}'s Rank",
+        description=f"**Level:** {user_data['level']}\n**XP:** {user_data['xp']}/{user_data['level'] * 100}",
+        color=discord.Color.blue()
+    ).set_footer(text="Keep chatting to earn more XP!")
+
+async def level_get(bot, member: discord.Member, guild: discord.Guild):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {LEVEL_TABLE} WHERE user_id=%s AND guild_id=%s",
+                (member.id, guild.id)
+            )
+            return await cur.fetchone()
+
+async def level_get_all(bot, guild: discord.Guild):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {LEVEL_TABLE} WHERE guild_id=%s",
+                (guild.id,)
+            )
+            return await cur.fetchall()
+
+async def level_set_channel(bot, channel: discord.TextChannel, guild: discord.Guild):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"REPLACE INTO {LEVEL_CHANNELS_TABLE} (guild_id, channel) VALUES (%s, %s)",
+                (guild.id, channel.id)
+            )
+
+async def level_get_channel(bot, guild: discord.Guild):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT channel FROM {LEVEL_CHANNELS_TABLE} WHERE guild_id=%s",
+                (guild.id,)
+            )
+            return await cur.fetchone()
 
 class LeaderboardView(discord.ui.View):
     def __init__(self, bot: commands.Bot, leaderboard, interaction: discord.Interaction):
@@ -13,7 +115,6 @@ class LeaderboardView(discord.ui.View):
         self.current_page = 0
         self.entries_per_page = 10
         self.total_pages = (len(leaderboard) - 1) // self.entries_per_page + 1
-
         self.update_buttons()
 
     def update_buttons(self):
@@ -60,14 +161,13 @@ class LeaderboardView(discord.ui.View):
             self.update_buttons()
             await self.send_page()
 
-
 class LevelSystem(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or message.guild is None:
             return
 
         member = message.author
@@ -79,10 +179,7 @@ class LevelSystem(commands.Cog):
             else:
                 return
 
-        if message.guild is None:
-            return
-
-        leveled_up, new_level = level_add_xp(member, message.guild, 10)
+        leveled_up, new_level = await level_add_xp(self.bot, member, message.guild, 10)
 
         if leveled_up:
             embed = discord.Embed(
@@ -92,8 +189,8 @@ class LevelSystem(commands.Cog):
             )
             embed.set_footer(text="Keep chatting to level up more!")
 
-            level_channel_id = level_get_channel(message.guild)
-            if level_channel_id:
+            level_channel_id = await level_get_channel(self.bot, message.guild)
+            if level_channel_id and "channel" in level_channel_id:
                 level_channel = self.bot.get_channel(level_channel_id["channel"])
                 if isinstance(level_channel, discord.TextChannel):
                     return await level_channel.send(embed=embed)
@@ -111,16 +208,11 @@ class LevelSystem(commands.Cog):
             await interaction.response.send_message("Could not find your member data in this server.", ephemeral=True)
             return
 
-        user_data = level_get(member, interaction.guild)
+        user_data = await level_get(self.bot, member, interaction.guild)
         if user_data is None:
             await interaction.response.send_message("No level data found for you in this server.", ephemeral=True)
             return
-        embed = discord.Embed(
-            title=f"📊 {member.display_name}'s Rank",
-            description=f"**Level:** {user_data['level']}\n**XP:** {user_data['xp']}/{user_data['level'] * 100}",
-            color=discord.Color.blue()
-        )
-        embed.set_footer(text="Keep chatting to earn more XP!")
+        embed = make_level_embed(member, user_data)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="leaderboard", description="Show the server's top users by level.")
@@ -128,12 +220,10 @@ class LevelSystem(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
-        levels = level_get_all(interaction.guild)
+        levels = await level_get_all(self.bot, interaction.guild)
         if levels is None:
             await interaction.response.send_message("No data available for this server.", ephemeral=True)
             return
-
-        print(f"Levels data: {levels}")
 
         leaderboard = sorted(
             levels,
@@ -156,9 +246,8 @@ class LevelSystem(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
-        level_set_channel(channel, interaction.guild)
+        await level_set_channel(self.bot, channel, interaction.guild)
         await interaction.response.send_message(f"✅ Level-up messages will now be sent in {channel.mention}.")
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LevelSystem(bot))

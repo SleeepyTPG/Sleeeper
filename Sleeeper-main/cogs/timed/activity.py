@@ -9,7 +9,8 @@ class Activity(commands.Cog):
         self.bot = bot
         self.activities = [
             discord.Activity(type=discord.ActivityType.watching, name=f"over 0 servers"),
-            discord.Activity(type=discord.ActivityType.playing, name=f"Version {CURRENT_VERSION}")
+            discord.Activity(type=discord.ActivityType.playing, name=f"Version {CURRENT_VERSION}"),
+            discord.Activity(type=discord.ActivityType.watching, name="over 0 users"),
         ]
 
     @commands.Cog.listener("on_ready")
@@ -20,10 +21,12 @@ class Activity(commands.Cog):
         while not self.bot.is_closed():
             total_servers = len(self.bot.guilds)
             self.activities[0].name = f"over {total_servers} servers"
+            total_users = sum(guild.member_count or 0 for guild in self.bot.guilds)
+            self.activities[2].name = f"over {total_users} users"
 
             for activity in self.activities:
                 await self.bot.change_presence(activity=activity)
-                await asyncio.sleep(10)
+                await asyncio.sleep(20)
 
 
 async def setup(bot: commands.Bot):

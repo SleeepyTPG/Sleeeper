@@ -1,12 +1,110 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from utils import marry_add_user, marry_get_user, marry_remove_user, adopt_user, get_adoption_data, remove_adoption
+import aiomysql
 
+MARRIAGE_TABLE = "marriages"
+ADOPTION_TABLE = "adoptions"
+
+async def ensure_family_tables_exist(bot):
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {MARRIAGE_TABLE} (
+                    member1 BIGINT NOT NULL,
+                    member2 BIGINT NOT NULL,
+                    PRIMARY KEY (member1, member2)
+                )
+            """)
+            await cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {ADOPTION_TABLE} (
+                    adopter BIGINT NOT NULL,
+                    adoptee BIGINT NOT NULL,
+                    PRIMARY KEY (adopter, adoptee)
+                )
+            """)
+
+async def get_mysql_pool(bot):
+    return await bot.get_mysql_pool()
+
+async def marry_add_user(bot, member1: discord.Member, member2: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO {MARRIAGE_TABLE} (member1, member2) VALUES (%s, %s)",
+                (member1.id, member2.id)
+            )
+
+
+async def marry_get_user(bot, member: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {MARRIAGE_TABLE} WHERE member1=%s OR member2=%s",
+                (member.id, member.id)
+            )
+            return await cur.fetchone()
+
+
+async def marry_remove_user(bot, member: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {MARRIAGE_TABLE} WHERE member1=%s OR member2=%s",
+                (member.id, member.id)
+            )
+            result = await cur.fetchone()
+            await cur.execute(
+                f"DELETE FROM {MARRIAGE_TABLE} WHERE member1=%s OR member2=%s",
+                (member.id, member.id)
+            )
+            return result
+
+
+async def adopt_user(bot, adopter: discord.Member, adoptee: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO {ADOPTION_TABLE} (adopter, adoptee) VALUES (%s, %s)",
+                (adopter.id, adoptee.id)
+            )
+
+
+async def get_adoption_data(bot, member: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                f"SELECT * FROM {ADOPTION_TABLE} WHERE adopter=%s OR adoptee=%s",
+                (member.id, member.id)
+            )
+            return await cur.fetchone()
+
+
+async def remove_adoption(bot, member: discord.Member):
+    await ensure_family_tables_exist(bot)
+    pool = await get_mysql_pool(bot)
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"DELETE FROM {ADOPTION_TABLE} WHERE adopter=%s OR adoptee=%s",
+                (member.id, member.id)
+            )
 
 class ProposalView(discord.ui.View):
-    def __init__(self, proposer: discord.Member, proposee: discord.Member):
+    def __init__(self, bot, proposer: discord.Member, proposee: discord.Member):
         super().__init__(timeout=360)
+        self.bot = bot
         self.proposer = proposer
         self.proposee = proposee
         self.result = None
@@ -17,7 +115,7 @@ class ProposalView(discord.ui.View):
             await interaction.response.send_message("❌ This proposal is not for you!", ephemeral=True)
             return
 
-        marry_add_user(self.proposer, self.proposee)
+        await marry_add_user(self.bot, self.proposer, self.proposee)
 
         embed = discord.Embed(
             title="💍 Marriage Accepted!",
@@ -47,8 +145,9 @@ class ProposalView(discord.ui.View):
 
 
 class AdoptionView(discord.ui.View):
-    def __init__(self, adopter: discord.Member, adoptee: discord.Member):
+    def __init__(self, bot, adopter: discord.Member, adoptee: discord.Member):
         super().__init__(timeout=360)
+        self.bot = bot
         self.adopter = adopter
         self.adoptee = adoptee
         self.result = None
@@ -59,7 +158,7 @@ class AdoptionView(discord.ui.View):
             await interaction.response.send_message("❌ This adoption request is not for you!", ephemeral=True)
             return
 
-        adopt_user(self.adopter, self.adoptee)
+        await adopt_user(self.bot, self.adopter, self.adoptee)
 
         embed = discord.Embed(
             title="👪 Adoption Accepted!",
@@ -86,8 +185,7 @@ class AdoptionView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=None)
         self.result = "declined"
         self.stop()
-
-
+        
 class Marry(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -110,8 +208,8 @@ class Marry(commands.Cog):
         if member is None:
             await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
             return
-        self_married = marry_get_user(member)
-        other_married = marry_get_user(user)
+        self_married = await marry_get_user(self.bot, member)
+        other_married = await marry_get_user(self.bot, user)
 
         if self_married:
             await interaction.response.send_message("💔 You are already married! Divorce first to marry someone else.", ephemeral=True)
@@ -134,7 +232,7 @@ class Marry(commands.Cog):
         if proposer_member is None:
             await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
             return
-        view = ProposalView(proposer=proposer_member, proposee=user)
+        view = ProposalView(self.bot, proposer=proposer_member, proposee=user)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="divorce", description="Divorce your current partner.")
@@ -148,11 +246,12 @@ class Marry(commands.Cog):
         if member is None:
             await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
             return
-        if not marry_get_user(member):
+        marriage = await marry_get_user(self.bot, member)
+        if not marriage:
             await interaction.response.send_message("💔 You are not married to anyone!", ephemeral=True)
             return
 
-        result = marry_remove_user(member)
+        result = await marry_remove_user(self.bot, member)
 
         if not result:
             await interaction.response.send_message("❌ Failed to process your divorce. Please try again.", ephemeral=True)
@@ -181,7 +280,7 @@ class Marry(commands.Cog):
         if user.bot:
             return await interaction.response.send_message("❌ You can't adopt a bot!", ephemeral=True)
 
-        adoption_data = get_adoption_data(user)
+        adoption_data = await get_adoption_data(self.bot, user)
         if adoption_data:
             await interaction.response.send_message(f"❌ {user.mention} is already adopted by someone else!", ephemeral=True)
             return
@@ -199,7 +298,7 @@ class Marry(commands.Cog):
         if adopter_member is None:
             await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
             return
-        view = AdoptionView(adopter=adopter_member, adoptee=user)
+        view = AdoptionView(self.bot, adopter=adopter_member, adoptee=user)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="runaway", description="Run away from your current adopter.")
@@ -214,13 +313,13 @@ class Marry(commands.Cog):
             await interaction.response.send_message("❌ Could not find your member data in this guild.", ephemeral=True)
             return
 
-        adoption_data = get_adoption_data(member)
+        adoption_data = await get_adoption_data(self.bot, member)
         if not adoption_data:
             await interaction.response.send_message("❌ You are not adopted by anyone!", ephemeral=True)
             return
 
         adopter_id = adoption_data["adopter"]
-        remove_adoption(member)
+        await remove_adoption(self.bot, member)
 
         embed = discord.Embed(
             title="🏃 Runaway",

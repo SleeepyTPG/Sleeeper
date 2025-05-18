@@ -33,12 +33,30 @@ class ServerLogging(commands.Cog):
     async def on_member_remove(self, member: discord.Member):
         log_channel = self.get_log_channel(member.guild)
         if log_channel:
-            embed = discord.Embed(
-                title="🚪 Member Left or Kicked",
-                description=f"{member.mention} ({member}) has left or was kicked.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=f"User ID: {member.id}")
+            entry = None
+            async for log in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
+                if log.target is not None and log.target.id == member.id:
+                    entry = log
+                    break
+
+            if entry:
+                moderator = entry.user.mention if entry.user else "Unknown"
+                reason = entry.reason if entry.reason else "Just cause I can"
+                embed = discord.Embed(
+                    title="👢 Member Kicked",
+                    description=f"{member.mention} ({member}) was kicked.",
+                    color=discord.Color.red()
+                )
+                embed.add_field(name="Moderator", value=moderator, inline=True)
+                embed.add_field(name="Reason", value=reason, inline=True)
+                embed.set_footer(text=f"User ID: {member.id}")
+            else:
+                embed = discord.Embed(
+                    title="🚪 Member Left",
+                    description=f"{member.mention} ({member}) has left or was kicked (no audit log found).",
+                    color=discord.Color.red()
+                )
+                embed.set_footer(text=f"User ID: {member.id}")
             await log_channel.send(embed=embed)
 
     @commands.Cog.listener()

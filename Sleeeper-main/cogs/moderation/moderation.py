@@ -184,6 +184,30 @@ class Moderation(commands.Cog):
             ephemeral=True
         )
 
+    @app_commands.command(name="clear", description="Delete a number of messages from the current channel.")
+    @app_commands.describe(messages="The number of messages to delete (max 100)")
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def clear(self, interaction: discord.Interaction, messages: int):
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message(
+                "❌ This command can only be used in a text channel.",
+                ephemeral=True
+            )
+            return
+
+        if messages < 1 or messages > 100:
+            await interaction.response.send_message(
+                "❌ Please specify a number between 1 and 100.",
+                ephemeral=True
+            )
+            return
+
+        deleted = await interaction.channel.purge(limit=messages)
+        await interaction.response.send_message(
+            f"🧹 Deleted {len(deleted)} message(s) from {interaction.channel.mention}.",
+            ephemeral=True
+        )
+
     def get_next_warn_id(self, guild: discord.Guild) -> str:
         warns_increase_id(guild)
         result = warns_get_id(guild)
