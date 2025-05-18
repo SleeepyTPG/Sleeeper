@@ -3,15 +3,9 @@ from discord.ext import commands
 from discord import app_commands
 from utils import logging_get_channel, logging_set_channel
 
-ALLOWED_SERVERS = [1328784978309288087, 1245052473236783216, 1047234324296114256]
-
-
 class ServerLogging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-    def is_allowed_server(self, guild: discord.Guild):
-        return guild.id in ALLOWED_SERVERS
 
     def get_log_channel(self, guild: discord.Guild) -> discord.TextChannel | None:
         channel_id = logging_get_channel(guild)
@@ -25,8 +19,6 @@ class ServerLogging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
-        if not isinstance(guild, discord.Guild) or not self.is_allowed_server(guild):
-            return
         log_channel = self.get_log_channel(guild)
         if log_channel:
             embed = discord.Embed(
@@ -39,8 +31,6 @@ class ServerLogging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        if not isinstance(member.guild, discord.Guild) or not self.is_allowed_server(member.guild):
-            return
         log_channel = self.get_log_channel(member.guild)
         if log_channel:
             embed = discord.Embed(
@@ -53,9 +43,6 @@ class ServerLogging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if not isinstance(before.guild, discord.Guild) or not self.is_allowed_server(before.guild):
-            return
-
         log_channel = self.get_log_channel(before.guild)
         if before.display_name != after.display_name:
             if log_channel:
@@ -83,12 +70,11 @@ class ServerLogging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
-        if not message.guild or not self.is_allowed_server(message.guild) or message.author.bot:
+        if not message.guild or message.author.bot:
             return
 
         log_channel = self.get_log_channel(message.guild)
         if log_channel:
-
             if isinstance(message.channel, discord.TextChannel):
                 channel_mention = message.channel.mention
             elif hasattr(message.channel, "name"):
@@ -106,7 +92,7 @@ class ServerLogging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        if not before.guild or not self.is_allowed_server(before.guild) or before.author.bot or before.content == after.content:
+        if not before.guild or before.author.bot or before.content == after.content:
             return
 
         log_channel = self.get_log_channel(before.guild)
@@ -135,10 +121,9 @@ class ServerLogging(commands.Cog):
     @app_commands.describe(channel="The channel to send logs")
     @app_commands.checks.has_permissions(administrator=True)
     async def _set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
-        if not isinstance(interaction.guild, discord.Guild) or not self.is_allowed_server(interaction.guild):
-            await interaction.response.send_message("❌ This server is not authorized to use logging.", ephemeral=True)
+        if interaction.guild is None:
+            await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
             return
-
         logging_set_channel(channel, interaction.guild)
         await interaction.response.send_message(f"✅ Logs will now be sent in {channel.mention}.")
 

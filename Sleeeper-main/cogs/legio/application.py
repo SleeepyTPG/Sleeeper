@@ -12,7 +12,7 @@ QUESTIONS = [
 
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
-        super().__init__(timeout=None)  # timeout=None makes it persistent
+        super().__init__(timeout=None)
         self.bot = bot
 
     @discord.ui.button(label="Apply", style=discord.ButtonStyle.green, custom_id="apply_button")
