@@ -12,7 +12,7 @@ QUESTIONS = [
 
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
-        super().__init__(timeout=None)
+        super().__init__(timeout=None)  # timeout=None makes it persistent
         self.bot = bot
 
     @discord.ui.button(label="Apply", style=discord.ButtonStyle.green, custom_id="apply_button")
@@ -78,6 +78,6 @@ class Application(commands.Cog):
         )
         await interaction.response.send_message(embed=embed, view=ApplicationButton(self.bot))
 
-
 async def setup(bot):
     await bot.add_cog(Application(bot))
+    bot.add_view(ApplicationButton(bot))
