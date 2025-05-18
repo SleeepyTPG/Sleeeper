@@ -14,7 +14,6 @@ class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
         self.bot = bot
-        self.add_item(discord.ui.Button(label="Apply", style=discord.ButtonStyle.green, custom_id="apply_button"))
 
     @discord.ui.button(label="Apply", style=discord.ButtonStyle.green, custom_id="apply_button")
     async def apply(self, interaction: discord.Interaction, button: discord.ui.Button):
