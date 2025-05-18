@@ -94,6 +94,11 @@ class ErrorLogger(commands.Cog):
                 print("Failed to send slash command error embed:", e)
         else:
             print("Error channel not found! Check ERROR_CHANNEL_ID and bot permissions.")
+    
+    @app_commands.command(name="error", description="Test the error logger.")
+    async def error_test(self, interaction: discord.Interaction):
+        await interaction.response.send_message("This is a test error.")
+        raise Exception("This is a test exception.")
 
 async def setup(bot):
     await bot.add_cog(ErrorLogger(bot))
