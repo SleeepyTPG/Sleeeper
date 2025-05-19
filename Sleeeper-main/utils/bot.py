@@ -26,7 +26,7 @@ class Bot(commands.Bot):
         self.loop.create_task(self._sync_commands())
 
         self.mysql_pool = await aiomysql.create_pool(
-            host="db0.fps.ms:3306",
+            host="db0.fps.ms",
             port=3306,
             user="u61176_eKPaZTch0u",
             password="G34z!nAU=CO61bIrlOY9IxAY",
