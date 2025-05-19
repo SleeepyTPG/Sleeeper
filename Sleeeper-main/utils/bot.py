@@ -16,6 +16,7 @@ class Bot(commands.Bot):
         )
 
         self.cog_dir = cog_dir
+        self.mysql_pool = None
 
     async def setup_hook(self):
         for file in self._find_cogs():
@@ -23,6 +24,16 @@ class Bot(commands.Bot):
             logger.info(f"✅ Loaded cog: {file}")
 
         self.loop.create_task(self._sync_commands())
+
+        self.mysql_pool = await aiomysql.create_pool(
+            host="db0.fps.ms:3306",
+            port=3306,
+            user="u61176_eKPaZTch0u",
+            password="G34z!nAU=CO61bIrlOY9IxAY",
+            db="s61176_sleeeper",
+            autocommit=True
+        )
+        logger.info("MySQL pool created.")
 
     async def _sync_commands(self):
         await self.tree.sync()
@@ -37,8 +48,6 @@ class Bot(commands.Bot):
 
 
     async def get_mysql_pool(self):
-        if not hasattr(self, "mysql_pool"):
-            self.mysql_pool = await aiomysql.create_pool(
-                host="db0.fps.ms:3306", port=3306, user="u61176_eKPaZTch0u", password="G34z!nAU=CO61bIrlOY9IxAY", db="s61176_sleeeper", autocommit=True
-            )
+        if self.mysql_pool is None:
+            raise RuntimeError("MySQL pool not initialized!")
         return self.mysql_pool

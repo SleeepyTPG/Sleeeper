@@ -7,3 +7,4 @@ PY/.env
 __pycache__
 venv
 *.json
+bot.py
