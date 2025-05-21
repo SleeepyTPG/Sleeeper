@@ -12,7 +12,6 @@ class Welcomer(commands.Cog):
         self.default_welcome_message = (
             "👋 Welcome {member} to **{guild}**!\n"
             "You are our {member_count}th member!\n"
-            "Please look into <#1372516055188246588> for your Roles"
         )
 
     async def ensure_tables_exist(self):
