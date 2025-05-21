@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-ALLOWED_APPLICATION_SERVERS = [1320366191763652720, 123456789012345678]
+ALLOWED_APPLICATION_SERVERS = [1319250405829513236, 1374102161725591672]
 
 QUESTIONS = [
     "What are your notable skills in-game and within a squad? ",
