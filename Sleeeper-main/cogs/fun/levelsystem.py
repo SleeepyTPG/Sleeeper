@@ -249,5 +249,24 @@ class LevelSystem(commands.Cog):
         await level_set_channel(self.bot, channel, interaction.guild)
         await interaction.response.send_message(f"✅ Level-up messages will now be sent in {channel.mention}.")
 
+    @app_commands.command(name="reset_levels", description="Reset the levels and XP of all users in the server.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def _reset_levels(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        await level_reset_all(self.bot, interaction.guild)
+        await interaction.response.send_message("✅ All user levels and XP have been reset.")
+
+async def level_reset_all(bot, guild: discord.Guild):
+    await ensure_tables_exist(bot)
+    pool = await bot.get_mysql_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"DELETE FROM {LEVEL_TABLE} WHERE guild_id=%s",
+                (guild.id,)
+            )
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(LevelSystem(bot))

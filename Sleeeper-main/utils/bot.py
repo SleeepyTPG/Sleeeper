@@ -4,9 +4,11 @@ import discord
 from discord.ext import commands
 import logging
 import aiomysql
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 
 class Bot(commands.Bot):
     def __init__(self, cog_dir: str = "cogs"):
@@ -28,8 +30,8 @@ class Bot(commands.Bot):
         self.mysql_pool = await aiomysql.create_pool(
             host="db0.fps.ms",
             port=3306,
-            user="u61176_eKPaZTch0u",
-            password="G34z!nAU=CO61bIrlOY9IxAY",
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
             db="s61176_sleeeper",
             autocommit=True
         )
