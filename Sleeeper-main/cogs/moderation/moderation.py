@@ -5,7 +5,6 @@ from datetime import timedelta
 import logging
 from utils import warns_set_channel, warns_add_user, warns_get_channel, warns_get_user, warns_increase_id, warns_get_id
 
-
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -235,7 +234,6 @@ class Moderation(commands.Cog):
                 ephemeral=True
             )
             raise error
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))
