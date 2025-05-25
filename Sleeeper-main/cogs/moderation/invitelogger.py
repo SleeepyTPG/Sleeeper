@@ -73,6 +73,8 @@ class InviteLogger(commands.Cog):
                     invite_obj = await guild.fetch_invite(used_invite)
                     inviter = invite_obj.inviter
                     uses = invite_obj.uses
+                    if inviter is None and invite_obj.code == getattr(guild, "vanity_url_code", None):
+                        inviter = "Vanity URL"
                 except Exception as e:
                     logger.warning(f"Failed to fetch invite object for code {used_invite} in guild {guild.id}: {e}")
                     inviter = None
@@ -84,7 +86,10 @@ class InviteLogger(commands.Cog):
                     color=discord.Color.blue()
                 )
                 if inviter:
-                    embed.add_field(name="Inviter", value=f"{inviter.mention} ({inviter})", inline=True)
+                    if inviter == "Vanity URL":
+                        embed.add_field(name="Inviter", value="Vanity URL", inline=True)
+                    else:
+                        embed.add_field(name="Inviter", value=f"{inviter.mention} ({inviter})", inline=True)
                 else:
                     embed.add_field(name="Inviter", value="Unknown", inline=True)
                 embed.add_field(name="Times Used", value=str(uses), inline=True)
