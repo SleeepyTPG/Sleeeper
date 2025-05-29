@@ -201,8 +201,10 @@ class Moderation(commands.Cog):
             )
             return
 
+        await interaction.response.defer(ephemeral=True)
+
         deleted = await interaction.channel.purge(limit=messages)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🧹 Deleted {len(deleted)} message(s) from {interaction.channel.mention}.",
             ephemeral=True
         )
